@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#14487f" />
+  <title>건강 길잡이</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <!-- 1. 홈 -->
+    <section id="screen-home" class="screen" aria-labelledby="home-title">
+      <header class="home-header">
+        <h1 id="home-title">건강 길잡이</h1>
+        <p class="home-question">어디가 불편하세요?</p>
+      </header>
+
+      <div class="symptom-grid" role="group" aria-label="불편한 곳 고르기">
+        <button type="button" class="symptom-btn" data-group="pain">
+          <span class="symptom-label">아프다</span>
+          <span class="symptom-hint">무릎·허리·어깨·머리</span>
+        </button>
+        <button type="button" class="symptom-btn" data-group="stomach">
+          <span class="symptom-label">속이 안 좋다</span>
+          <span class="symptom-hint">소화·속쓰림·변</span>
+        </button>
+        <button type="button" class="symptom-btn" data-group="breath">
+          <span class="symptom-label">숨·기침</span>
+          <span class="symptom-hint">기침·가래·숨참</span>
+        </button>
+        <button type="button" class="symptom-btn" data-group="sleep">
+          <span class="symptom-label">잠</span>
+          <span class="symptom-hint">못 잔다·새벽에 깬다</span>
+        </button>
+        <button type="button" class="symptom-btn" data-group="energy">
+          <span class="symptom-label">기운·어지럼</span>
+          <span class="symptom-hint">힘없다·어지럽다·깜빡한다</span>
+        </button>
+        <button type="button" class="symptom-btn" data-group="eyeear">
+          <span class="symptom-label">눈·귀</span>
+          <span class="symptom-hint">침침하다·잘 안 들린다</span>
+        </button>
+        <button type="button" class="symptom-btn" data-group="urine">
+          <span class="symptom-label">소변</span>
+          <span class="symptom-hint">자주 마렵다·시원찮다</span>
+        </button>
+        <button type="button" class="symptom-btn" data-group="mood">
+          <span class="symptom-label">기분</span>
+          <span class="symptom-hint">울적하다·답답하다</span>
+        </button>
+      </div>
+
+      <button type="button" class="full-btn" data-group="unknown">
+        잘 모르겠다
+      </button>
+
+      <button type="button" class="secondary-btn" id="btn-records">
+        내 기록 보기
+      </button>
+    </section>
+
+    <!-- 2. 말하기 -->
+    <section id="screen-speak" class="screen" hidden aria-labelledby="speak-group-label">
+      <h2 id="speak-group-label" class="speak-group-label"></h2>
+
+      <div class="speak-main">
+        <button type="button" id="btn-voice" class="voice-btn" aria-pressed="false">
+          누르고<br />말씀하세요
+        </button>
+
+        <div id="text-input-area" class="text-input-area">
+          <label for="speak-text" class="text-input-label">글자로 쓰기</label>
+          <textarea
+            id="speak-text"
+            class="speak-text"
+            rows="4"
+            placeholder="불편하신 점을 적어 주세요"
+          ></textarea>
+        </div>
+      </div>
+
+      <button type="button" id="btn-speak-next" class="full-btn">
+        다음
+      </button>
+
+      <button type="button" id="btn-speak-back" class="secondary-btn nav-back">
+        뒤로
+      </button>
+    </section>
+
+    <!-- 3. 결과 -->
+    <section id="screen-result" class="screen" hidden>
+      <div id="energy-alert" class="energy-alert" hidden>
+        갑자기 한쪽 팔다리에 힘이 빠지거나, 말이 어눌해지거나, 입이 돌아가면
+        <strong>곧바로 119</strong>에 전화하십시오.
+      </div>
+
+      <div class="result-said">
+        <h2 class="section-title">내가 한 말</h2>
+        <p id="result-text-view" class="result-text-view"></p>
+        <textarea id="result-text-edit" class="result-text-edit" rows="4" hidden></textarea>
+        <button type="button" id="btn-edit" class="secondary-btn btn-edit">고치기</button>
+      </div>
+
+      <button type="button" id="btn-save" class="full-btn">이대로 적어두기</button>
+
+      <div id="record-only-msg" class="record-only-msg" hidden>
+        적어두었습니다. 이런 이야기는 나중에 의사 선생님께 보여드리면 도움이 됩니다.
+      </div>
+
+      <div id="mood-extra" class="mood-extra" hidden>
+        <p>요즘 마음이 무거우신 것 같습니다. 가까운 분이나 전문가와 이야기를 나눠보시면 좋겠습니다.</p>
+        <p class="mood-phone">정신건강 상담전화 1577-0199</p>
+      </div>
+
+      <div id="lifestyle-section" class="guide-section" hidden>
+        <h2 class="section-title">집에서 해보실 것</h2>
+        <div id="lifestyle-list" class="card-list"></div>
+      </div>
+
+      <hr id="guide-divider" class="guide-divider" hidden />
+
+      <div id="tea-section" class="guide-section" hidden>
+        <h2 class="section-title">예로부터 드시던 차</h2>
+        <div id="tea-list" class="card-list"></div>
+        <button type="button" id="btn-more-tea" class="secondary-btn" hidden>
+          다른 차 더 보기
+        </button>
+        <p id="tea-disclaimer" class="tea-note"></p>
+        <p id="tea-medicine-warning" class="tea-medicine-warning"></p>
+        <p id="tea-caffeine" class="tea-note" hidden></p>
+      </div>
+
+      <div id="hospital-section" class="hospital-box" hidden>
+        <h2 class="section-title hospital-title">이럴 땐 병원에 가보세요</h2>
+        <ul id="hospital-list" class="hospital-list"></ul>
+      </div>
+
+      <button type="button" id="btn-result-home" class="secondary-btn nav-back">
+        처음으로
+      </button>
+    </section>
+
+    <!-- 4. 기록 -->
+    <section id="screen-records" class="screen" hidden aria-labelledby="records-title">
+      <button type="button" id="btn-clinic" class="full-btn">
+        의사에게 보여주기
+      </button>
+
+      <h2 id="records-title" class="records-title">내 기록</h2>
+
+      <div class="record-tabs" role="tablist" aria-label="기록 보기 방식">
+        <button
+          type="button"
+          id="tab-by-group"
+          class="record-tab is-active"
+          role="tab"
+          aria-selected="true"
+          aria-controls="records-by-group"
+        >
+          증상별
+        </button>
+        <button
+          type="button"
+          id="tab-by-date"
+          class="record-tab"
+          role="tab"
+          aria-selected="false"
+          aria-controls="records-by-date"
+        >
+          날짜순
+        </button>
+      </div>
+
+      <p id="records-empty" class="records-empty" hidden>
+        아직 적어 둔 기록이 없습니다.
+      </p>
+
+      <div id="records-by-group" class="records-panel" role="tabpanel"></div>
+      <div id="records-by-date" class="records-panel" role="tabpanel" hidden></div>
+
+      <button type="button" id="btn-records-back" class="secondary-btn nav-back">
+        처음으로
+      </button>
+    </section>
+
+    <!-- 5. 진료용 -->
+    <section id="screen-clinic" class="screen screen-clinic" hidden aria-labelledby="clinic-intro">
+      <p id="clinic-intro" class="clinic-intro">
+        이 화면을 의사 선생님께 보여드리세요
+      </p>
+      <p class="clinic-period">최근 3개월</p>
+
+      <p id="clinic-empty" class="clinic-empty" hidden>
+        최근 3개월 안에 적어 둔 기록이 없습니다.
+      </p>
+
+      <div id="clinic-content" class="clinic-content"></div>
+
+      <p class="clinic-footer">
+        이 화면을 사진으로 찍어 자녀분께 보내셔도 됩니다
+      </p>
+
+      <button type="button" id="btn-clinic-back" class="secondary-btn nav-back no-print">
+        뒤로
+      </button>
+    </section>
+  </main>
+
+  <p class="app-disclaimer">
+    이 안내는 참고용입니다. 몸이 불편하시면 병원에 가보십시오.
+  </p>
+
+  <script src="lifestyle-data.js"></script>
+  <script src="tea-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
