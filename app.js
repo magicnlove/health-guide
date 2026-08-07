@@ -60,6 +60,10 @@ const state = {
   text: "",
   recognition: null,
   listening: false,
+  voiceStarting: false,
+  voiceMode: "idle",
+  voiceClickLock: false,
+  voicePointerDownAt: 0,
   editing: false,
   savedId: null,
   shuffledTeas: [],
@@ -415,17 +419,44 @@ function shuffle(list) {
   return arr;
 }
 
+const VOICE_LABELS = {
+  idle: "한번만 눌러서<br />말씀하세요",
+  listening: "말씀하세요.<br />듣고 있습니다",
+  done: "다 말씀하셨으면<br />여기를 누르세요",
+};
+
+function updateVoiceButton(mode) {
+  state.voiceMode = mode;
+  btnVoice.dataset.voiceState = mode;
+  btnVoice.classList.toggle("is-listening", mode === "listening");
+  btnVoice.setAttribute("aria-pressed", mode === "listening" ? "true" : "false");
+
+  const label = btnVoice.querySelector(".voice-btn-label");
+  if (label) {
+    label.innerHTML = VOICE_LABELS[mode] || VOICE_LABELS.idle;
+  }
+}
+
 function stopListening() {
-  if (!state.recognition || !state.listening) return;
+  if (!state.recognition || (!state.listening && !state.voiceStarting)) return;
   try {
     state.recognition.stop();
   } catch (_) {
     /* already stopped */
   }
-  state.listening = false;
-  btnVoice.classList.remove("is-listening");
-  btnVoice.setAttribute("aria-pressed", "false");
-  btnVoice.innerHTML = "누르고<br />말씀하세요";
+}
+
+function startListening() {
+  if (!state.recognition || state.listening || state.voiceStarting) return;
+
+  state.voiceStarting = true;
+  try {
+    state.recognition.start();
+  } catch (_) {
+    state.voiceStarting = false;
+    updateVoiceButton(state.voiceMode === "done" ? "done" : "idle");
+    speakText.focus();
+  }
 }
 
 function setupRecognition() {
@@ -439,9 +470,8 @@ function setupRecognition() {
 
   recognition.onstart = () => {
     state.listening = true;
-    btnVoice.classList.add("is-listening");
-    btnVoice.setAttribute("aria-pressed", "true");
-    btnVoice.innerHTML = "듣고 있어요<br />끝나면 누르세요";
+    state.voiceStarting = false;
+    updateVoiceButton("listening");
   };
 
   recognition.onresult = (event) => {
@@ -453,15 +483,16 @@ function setupRecognition() {
   };
 
   recognition.onerror = () => {
-    stopListening();
+    state.listening = false;
+    state.voiceStarting = false;
+    updateVoiceButton("done");
     speakText.focus();
   };
 
   recognition.onend = () => {
     state.listening = false;
-    btnVoice.classList.remove("is-listening");
-    btnVoice.setAttribute("aria-pressed", "false");
-    btnVoice.innerHTML = "누르고<br />말씀하세요";
+    state.voiceStarting = false;
+    updateVoiceButton("done");
   };
 
   return recognition;
@@ -483,6 +514,7 @@ function openSpeak(group) {
     if (!state.recognition) {
       state.recognition = setupRecognition();
     }
+    updateVoiceButton("idle");
   } else {
     speakText.focus();
   }
@@ -750,20 +782,35 @@ document.querySelectorAll("[data-group]").forEach((btn) => {
   });
 });
 
+btnVoice.addEventListener("contextmenu", (event) => {
+  event.preventDefault();
+});
+
+btnVoice.addEventListener("pointerdown", () => {
+  state.voicePointerDownAt = Date.now();
+});
+
 btnVoice.addEventListener("click", () => {
   if (!state.recognition) return;
+  if (state.voiceClickLock || state.voiceStarting) return;
+
+  const heldMs = Date.now() - (state.voicePointerDownAt || 0);
+  // 녹음 중 길게 누르다 떼도 취소되지 않게 한다 (짧게 탭할 때만 중지)
+  if (state.listening && heldMs > 500) {
+    return;
+  }
+
+  state.voiceClickLock = true;
+  window.setTimeout(() => {
+    state.voiceClickLock = false;
+  }, 500);
 
   if (state.listening) {
     stopListening();
     return;
   }
 
-  try {
-    state.recognition.start();
-  } catch (_) {
-    stopListening();
-    speakText.focus();
-  }
+  startListening();
 });
 
 btnSpeakNext.addEventListener("click", openResult);

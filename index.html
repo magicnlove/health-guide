@@ -78,8 +78,32 @@
       <h2 id="speak-group-label" class="speak-group-label"></h2>
 
       <div class="speak-main">
-        <button type="button" id="btn-voice" class="voice-btn" aria-pressed="false">
-          누르고<br />말씀하세요
+        <button
+          type="button"
+          id="btn-voice"
+          class="voice-btn"
+          data-voice-state="idle"
+          aria-pressed="false"
+        >
+          <span class="voice-btn-waves" aria-hidden="true">
+            <span class="voice-btn-wave"></span>
+            <span class="voice-btn-wave"></span>
+          </span>
+          <span class="voice-btn-mic" aria-hidden="true">
+            <svg
+              class="voice-mic-icon"
+              viewBox="0 0 24 24"
+              width="56"
+              height="56"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a1 1 0 1 0-2 0 3 3 0 0 1-6 0 1 1 0 1 0-2 0 5 5 0 0 0 4 4.9V18H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.1A5 5 0 0 0 17 11z"
+              />
+            </svg>
+          </span>
+          <span class="voice-btn-label">한번만 눌러서<br />말씀하세요</span>
         </button>
 
         <div id="text-input-area" class="text-input-area">
