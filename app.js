@@ -419,7 +419,7 @@ function createRecordItem(record) {
 
   const text = document.createElement("p");
   text.className = "record-item-text";
-  text.textContent = `${formatRecordBracket(record)} ${record.text}`;
+  text.textContent = record.text;
   main.appendChild(text);
 
   const meta = document.createElement("p");
@@ -432,31 +432,87 @@ function createRecordItem(record) {
   return item;
 }
 
-function renderRecordsByGroup(records) {
-  recordsByGroup.innerHTML = "";
+/** 증상별·진료용이 같이 쓰는 대분류→세부 묶음 */
+function buildSymptomTree(records) {
   const cutoff = threeMonthsCutoffStr();
   const recent = records.filter((r) => r.date >= cutoff);
 
-  const groups = {};
+  const byGroup = {};
   recent.forEach((r) => {
-    const key = recordDetailKey(r);
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(r);
+    if (!byGroup[r.group]) byGroup[r.group] = [];
+    byGroup[r.group].push(r);
   });
 
-  const sortedGroups = Object.keys(groups).sort((a, b) => {
-    const countDiff = groups[b].length - groups[a].length;
-    if (countDiff !== 0) return countDiff;
-    const latestA = groups[a].reduce((max, r) => (r.date > max ? r.date : max), "");
-    const latestB = groups[b].reduce((max, r) => (r.date > max ? r.date : max), "");
-    return latestB.localeCompare(latestA);
-  });
+  const tree = Object.keys(byGroup)
+    .map((groupKey) => {
+      const groupRecords = byGroup[groupKey];
+      const byDetail = {};
 
-  sortedGroups.forEach((key) => {
-    const groupRecords = sortRecordsByDateDesc(groups[key]);
-    const count = groupRecords.length;
-    const label = recordDetailLabel(groupRecords[0]);
-    const isOpen = state.expandedGroups.has(key);
+      groupRecords.forEach((r) => {
+        const detailKey = isDetailAny(r.detail) ? DETAIL_ANY : r.detail;
+        if (!byDetail[detailKey]) byDetail[detailKey] = [];
+        byDetail[detailKey].push(r);
+      });
+
+      const details = Object.keys(byDetail)
+        .map((detailKey) => {
+          const list = byDetail[detailKey];
+          const latestDate = list.reduce(
+            (max, r) => (r.date > max ? r.date : max),
+            ""
+          );
+          return {
+            detailKey,
+            detailLabel: detailKey,
+            count: list.length,
+            latestDate,
+            recordsAsc: sortRecordsByDateAsc(list),
+            recordsDesc: sortRecordsByDateDesc(list),
+          };
+        })
+        .sort((a, b) => {
+          if (b.count !== a.count) return b.count - a.count;
+          return b.latestDate.localeCompare(a.latestDate);
+        });
+
+      const latestDate = groupRecords.reduce(
+        (max, r) => (r.date > max ? r.date : max),
+        ""
+      );
+
+      return {
+        groupKey,
+        groupLabel: GROUP_LABELS[groupKey] || groupKey,
+        count: groupRecords.length,
+        latestDate,
+        details,
+      };
+    })
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return b.latestDate.localeCompare(a.latestDate);
+    });
+
+  return {
+    tree,
+    totalCount: recent.length,
+  };
+}
+
+function renderRecordsByGroup(records) {
+  recordsByGroup.innerHTML = "";
+  const { tree, totalCount } = buildSymptomTree(records);
+  if (totalCount === 0) return;
+
+  const autoExpandAll = totalCount <= 3;
+  if (autoExpandAll) {
+    tree.forEach((node) => {
+      state.expandedGroups.add(node.groupKey);
+    });
+  }
+
+  tree.forEach((node) => {
+    const isOpen = state.expandedGroups.has(node.groupKey);
 
     const block = document.createElement("div");
     block.className = "group-block";
@@ -464,12 +520,33 @@ function renderRecordsByGroup(records) {
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.className = "group-toggle" + (isOpen ? " is-open" : "");
-    toggle.textContent = `${label} — 최근 3개월 ${count}번`;
+    toggle.setAttribute("aria-expanded", String(isOpen));
+
+    const main = document.createElement("span");
+    main.className = "group-toggle-main";
+
+    const title = document.createElement("span");
+    title.className = "group-toggle-title";
+    title.textContent = node.groupLabel;
+    main.appendChild(title);
+
+    const meta = document.createElement("span");
+    meta.className = "group-toggle-meta";
+    meta.textContent = `최근 3개월 ${node.count}번`;
+    main.appendChild(meta);
+
+    const chevron = document.createElement("span");
+    chevron.className = "group-toggle-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    chevron.textContent = isOpen ? "∧" : "∨";
+
+    toggle.appendChild(main);
+    toggle.appendChild(chevron);
     toggle.addEventListener("click", () => {
-      if (state.expandedGroups.has(key)) {
-        state.expandedGroups.delete(key);
+      if (state.expandedGroups.has(node.groupKey)) {
+        state.expandedGroups.delete(node.groupKey);
       } else {
-        state.expandedGroups.add(key);
+        state.expandedGroups.add(node.groupKey);
       }
       renderRecordsByGroup(records);
     });
@@ -477,11 +554,24 @@ function renderRecordsByGroup(records) {
 
     const items = document.createElement("div");
     items.className = "group-items" + (isOpen ? " is-open" : "");
-    groupRecords.forEach((record) => {
-      items.appendChild(createRecordItem(record));
-    });
-    block.appendChild(items);
 
+    node.details.forEach((detail) => {
+      const detailBlock = document.createElement("div");
+      detailBlock.className = "detail-block";
+
+      const detailTitle = document.createElement("p");
+      detailTitle.className = "detail-block-title";
+      detailTitle.textContent = `${detail.detailLabel} ${detail.count}번`;
+      detailBlock.appendChild(detailTitle);
+
+      detail.recordsDesc.forEach((record) => {
+        detailBlock.appendChild(createRecordItem(record));
+      });
+
+      items.appendChild(detailBlock);
+    });
+
+    block.appendChild(items);
     recordsByGroup.appendChild(block);
   });
 }
@@ -574,54 +664,41 @@ function openClinic() {
 }
 
 function renderClinicScreen() {
-  const cutoff = threeMonthsCutoffStr();
-  const recent = loadRecords().filter((r) => r.date >= cutoff);
+  const { tree, totalCount } = buildSymptomTree(loadRecords());
 
   clinicContent.innerHTML = "";
-  clinicEmpty.hidden = recent.length > 0;
+  clinicEmpty.hidden = totalCount > 0;
 
-  if (recent.length === 0) return;
+  if (totalCount === 0) return;
 
-  const groups = {};
-  recent.forEach((r) => {
-    const key = recordDetailKey(r);
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(r);
-  });
-
-  const sortedGroups = Object.keys(groups).sort((a, b) => {
-    const firstA = sortRecordsByDateAsc(groups[a])[0].date;
-    const firstB = sortRecordsByDateAsc(groups[b])[0].date;
-    return firstA.localeCompare(firstB);
-  });
-
-  sortedGroups.forEach((key) => {
-    const groupRecords = sortRecordsByDateAsc(groups[key]);
-    const firstDate = formatDateShort(groupRecords[0].date);
-    const count = groupRecords.length;
-    const label = recordDetailLabel(groupRecords[0]);
-
+  tree.forEach((node) => {
     const section = document.createElement("section");
     section.className = "clinic-group";
 
     const heading = document.createElement("h2");
     heading.className = "clinic-group-title";
-    heading.textContent = `${label} — 최근 3개월 ${count}번`;
+    heading.textContent = `${node.groupLabel} — 최근 3개월 ${node.count}번`;
     section.appendChild(heading);
 
-    const summary = document.createElement("p");
-    summary.className = "clinic-group-summary";
-    summary.textContent = `처음 말씀하신 날: ${firstDate}`;
-    section.appendChild(summary);
+    node.details.forEach((detail) => {
+      const detailBlock = document.createElement("div");
+      detailBlock.className = "clinic-detail-block";
 
-    const list = document.createElement("ul");
-    list.className = "clinic-record-list";
-    groupRecords.forEach((record) => {
-      const li = document.createElement("li");
-      li.textContent = `${formatDateShort(record.date)} — ${record.text}`;
-      list.appendChild(li);
+      const detailTitle = document.createElement("p");
+      detailTitle.className = "clinic-detail-title";
+      detailTitle.textContent = `${detail.detailLabel} ${detail.count}번`;
+      detailBlock.appendChild(detailTitle);
+
+      const list = document.createElement("ul");
+      list.className = "clinic-record-list";
+      detail.recordsAsc.forEach((record) => {
+        const li = document.createElement("li");
+        li.textContent = `${formatDateShort(record.date)} — ${record.text}`;
+        list.appendChild(li);
+      });
+      detailBlock.appendChild(list);
+      section.appendChild(detailBlock);
     });
-    section.appendChild(list);
 
     clinicContent.appendChild(section);
   });
