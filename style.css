@@ -442,6 +442,15 @@ body {
   text-align: center;
 }
 
+.result-path {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
 .result-saved {
   display: flex;
   flex-direction: column;

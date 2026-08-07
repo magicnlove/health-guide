@@ -14,9 +14,10 @@ const GROUP_LABELS = {
 
 const RECORD_ONLY_GROUPS = new Set(["energy", "mood", "unknown"]);
 
-const DETAIL_ANY = "어디든";
+const DETAIL_ANY = "잘 모르겠어요";
+const DETAIL_ANY_LEGACY = "어디든";
 
-/** 그룹별 세부 선택 (최대 4개 + 항상 마지막에 어디든) */
+/** 그룹별 세부 선택 (최대 4개 + 항상 마지막에 잘 모르겠어요) */
 const DETAIL_OPTIONS = {
   pain: ["무릎", "허리", "어깨", "머리"],
   stomach: ["소화", "속쓰림", "변"],
@@ -91,6 +92,7 @@ const state = {
   expandedGroups: new Set(),
   pendingDeleteId: null,
   pendingDeleteCurrent: false,
+  clearSpeakOnReturn: false,
   currentScreen: "home",
   navDepth: 0,
   ignoringPop: false,
@@ -112,6 +114,7 @@ const speakText = document.getElementById("speak-text");
 const btnSpeakNext = document.getElementById("btn-speak-next");
 
 const energyAlert = document.getElementById("energy-alert");
+const resultPath = document.getElementById("result-path");
 const resultTextView = document.getElementById("result-text-view");
 const resultTextEdit = document.getElementById("result-text-edit");
 const btnEdit = document.getElementById("btn-edit");
@@ -167,12 +170,14 @@ function resetJourneyState() {
   state.savedId = null;
   state.editing = false;
   state.pendingDeleteCurrent = false;
+  state.clearSpeakOnReturn = false;
   state.orderedLifestyle = [];
   state.lifestyleExpanded = false;
   state.lifestyleShowAll = false;
   state.orderedTeas = [];
   state.teaExpanded = false;
   speakText.value = "";
+  clearActiveRecordId();
 }
 
 function goHome() {
@@ -207,14 +212,18 @@ function restoreScreen(screen) {
       state.editing = false;
     }
     prepareSpeakChrome();
-    speakText.value = state.text || speakText.value;
+    if (state.clearSpeakOnReturn) {
+      state.clearSpeakOnReturn = false;
+      state.text = "";
+      speakText.value = "";
+      updateVoiceButton("idle");
+    } else {
+      speakText.value = state.text || speakText.value;
+    }
   } else if (screen === "result") {
     if (!state.group) {
       goHome();
       return;
-    }
-    if (!state.savedId && state.text.trim()) {
-      autoSaveNewRecord();
     }
     renderResultFromState({ preserveOrder: true });
   } else if (screen === "records") {
@@ -324,12 +333,61 @@ function sortRecordsByDateAsc(records) {
 }
 
 function recordDetailLabel(record) {
-  if (record.detail) return record.detail;
-  return GROUP_LABELS[record.group] || record.group;
+  return formatGroupSummaryLabel(record);
 }
 
 function recordDetailKey(record) {
-  return `${record.group}::${record.detail || ""}`;
+  const detail = record.detail || "";
+  return `${record.group}::${detail}`;
+}
+
+function isDetailAny(detail) {
+  return !detail || detail === DETAIL_ANY || detail === DETAIL_ANY_LEGACY;
+}
+
+function formatPathTitle(group, detail) {
+  const groupLabel = GROUP_LABELS[group] || group;
+  if (isDetailAny(detail)) return groupLabel;
+  return `${groupLabel} > ${detail}`;
+}
+
+function formatRecordBracket(record) {
+  const groupLabel = GROUP_LABELS[record.group] || record.group;
+  if (isDetailAny(record.detail)) return `[${groupLabel}]`;
+  return `[${groupLabel} · ${record.detail}]`;
+}
+
+function formatGroupSummaryLabel(record) {
+  const groupLabel = GROUP_LABELS[record.group] || record.group;
+  if (isDetailAny(record.detail)) return groupLabel;
+  return `${groupLabel} · ${record.detail}`;
+}
+
+const ACTIVE_RECORD_KEY = "healthguide.activeRecordId";
+
+function rememberActiveRecordId(id) {
+  if (!id) return;
+  try {
+    sessionStorage.setItem(ACTIVE_RECORD_KEY, id);
+  } catch (_) {
+    /* ignore */
+  }
+}
+
+function readActiveRecordId() {
+  try {
+    return sessionStorage.getItem(ACTIVE_RECORD_KEY);
+  } catch (_) {
+    return null;
+  }
+}
+
+function clearActiveRecordId() {
+  try {
+    sessionStorage.removeItem(ACTIVE_RECORD_KEY);
+  } catch (_) {
+    /* ignore */
+  }
 }
 
 function createDeleteButton(recordId) {
@@ -361,7 +419,7 @@ function createRecordItem(record) {
 
   const text = document.createElement("p");
   text.className = "record-item-text";
-  text.textContent = record.text;
+  text.textContent = `${formatRecordBracket(record)} ${record.text}`;
   main.appendChild(text);
 
   const meta = document.createElement("p");
@@ -455,7 +513,7 @@ function renderRecordsByDate(records) {
 
     const groupTag = document.createElement("span");
     groupTag.className = "date-record-group";
-    groupTag.textContent = `[${GROUP_LABELS[record.group] || record.group}]`;
+    groupTag.textContent = formatRecordBracket(record);
     line.appendChild(groupTag);
     line.appendChild(document.createTextNode(` ${record.text}`));
     item.appendChild(line);
@@ -580,10 +638,10 @@ function shuffle(list) {
   return arr;
 }
 
-/** tags 일치 항목을 앞으로, tags 빈 항목은 맨 뒤로. 어디든이면 정렬 없음. */
+/** tags 일치 항목을 앞으로, tags 빈 항목은 맨 뒤로. 잘 모르겠어요면 정렬 없음. */
 function orderItemsByDetail(items, detail) {
   const list = items.slice();
-  if (!detail || detail === DETAIL_ANY) {
+  if (isDetailAny(detail)) {
     return { ordered: list, showAll: true };
   }
 
@@ -623,7 +681,9 @@ function renderDetailGrid() {
       state.text = "";
       state.savedId = null;
       state.editing = false;
+      state.clearSpeakOnReturn = false;
       speakText.value = "";
+      clearActiveRecordId();
       prepareSpeakChrome();
       navigateTo("speak");
     });
@@ -638,7 +698,9 @@ function startGroupFlow(group) {
   state.text = "";
   state.savedId = null;
   state.editing = false;
+  state.clearSpeakOnReturn = false;
   speakText.value = "";
+  clearActiveRecordId();
   renderDetailGrid();
   navigateTo("detail");
 }
@@ -723,7 +785,7 @@ function setupRecognition() {
 }
 
 function prepareSpeakChrome() {
-  speakGroupLabel.textContent = GROUP_LABELS[state.group] || state.group;
+  speakGroupLabel.textContent = formatPathTitle(state.group, state.detail);
 
   const supported = speechSupported();
   btnVoice.hidden = !supported;
@@ -792,11 +854,28 @@ function setEditing(on) {
   updateSavedRecordText();
 }
 
-function autoSaveNewRecord() {
+function ensureRecordSaved() {
   const text = state.text.trim();
   if (!text || !state.group) return;
 
   const records = loadRecords();
+  let id = state.savedId || readActiveRecordId();
+
+  if (id) {
+    const idx = records.findIndex((r) => r.id === id);
+    if (idx >= 0) {
+      records[idx].text = text;
+      records[idx].date = todayStr();
+      records[idx].group = state.group;
+      records[idx].detail = state.detail || DETAIL_ANY;
+      saveRecords(records);
+      state.savedId = id;
+      rememberActiveRecordId(id);
+      updateMoodExtra();
+      return;
+    }
+  }
+
   const record = {
     id: String(Date.now()),
     group: state.group,
@@ -807,27 +886,12 @@ function autoSaveNewRecord() {
   records.push(record);
   saveRecords(records);
   state.savedId = record.id;
+  rememberActiveRecordId(record.id);
   updateMoodExtra();
 }
 
 function updateSavedRecordText() {
-  const text = state.text.trim();
-  if (!text || !state.savedId) return;
-
-  const records = loadRecords();
-  const idx = records.findIndex((r) => r.id === state.savedId);
-  if (idx < 0) {
-    autoSaveNewRecord();
-    return;
-  }
-
-  records[idx].text = text;
-  records[idx].date = todayStr();
-  if (state.detail) {
-    records[idx].detail = state.detail;
-  }
-  saveRecords(records);
-  updateMoodExtra();
+  ensureRecordSaved();
 }
 
 function deleteCurrentSavedRecord() {
@@ -844,6 +908,10 @@ function deleteCurrentSavedRecord() {
   saveRecords(records);
   state.savedId = null;
   state.pendingDeleteCurrent = false;
+  state.clearSpeakOnReturn = true;
+  state.text = "";
+  speakText.value = "";
+  clearActiveRecordId();
   updateDeleteCurrentButton();
   updateMoodExtra();
   history.back();
@@ -1009,6 +1077,9 @@ function renderResultFromState(options = {}) {
   const preserveOrder = Boolean(options.preserveOrder);
   const text = state.text || "";
 
+  if (resultPath) {
+    resultPath.textContent = formatPathTitle(state.group, state.detail);
+  }
   showQuotedText(text);
   resultTextView.hidden = false;
   resultTextEdit.hidden = true;
@@ -1047,9 +1118,8 @@ function openResult() {
 
   stopListening();
   state.text = text;
-  state.savedId = null;
   state.pendingDeleteCurrent = false;
-  autoSaveNewRecord();
+  ensureRecordSaved();
   renderResultFromState();
   navigateTo("result");
 }
