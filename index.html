@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#14487f" />
+  <meta name="theme-color" content="#F47320" />
   <title>건강 길잡이</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
@@ -11,10 +11,21 @@
 </head>
 <body>
   <main class="app">
+    <div class="app-brand">
+      <img
+        src="ci-logo.png"
+        alt="한화투자증권"
+        class="ci-logo"
+      />
+    </div>
+
     <!-- 1. 홈 -->
     <section id="screen-home" class="screen" aria-labelledby="home-title">
       <header class="home-header">
-        <h1 id="home-title">건강 길잡이</h1>
+        <h1 id="home-title" class="home-title">
+          <span class="home-title-point">건강</span><span class="home-title-ink">길잡이</span>
+        </h1>
+        <span class="home-title-underline" aria-hidden="true"></span>
         <p class="home-question">어디가 불편하세요?</p>
       </header>
 
@@ -210,9 +221,16 @@
     </section>
   </main>
 
-  <p class="app-disclaimer">
-    이 안내는 참고용입니다. 몸이 불편하시면 병원에 가보십시오.
-  </p>
+  <footer class="app-bottom">
+    <p class="app-disclaimer">
+      이 안내는 참고용입니다. 몸이 불편하시면 병원에 가보십시오.
+    </p>
+    <hr class="app-bottom-rule" />
+    <p class="app-copyright">
+      Copyright © 2026 한화투자증권(주) 디지털L&amp;D센터. All rights reserved.<br />
+      Developed by 이승훈.
+    </p>
+  </footer>
 
   <script src="lifestyle-data.js"></script>
   <script src="tea-data.js"></script>
