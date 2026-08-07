@@ -656,6 +656,10 @@ body {
   gap: 12px;
 }
 
+.records-panel[hidden] {
+  display: none;
+}
+
 .records-panel-group {
   gap: 10px;
 }
