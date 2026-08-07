@@ -77,6 +77,19 @@
       </p>
     </section>
 
+    <!-- 1b. 세부 선택 -->
+    <section id="screen-detail" class="screen" hidden aria-labelledby="detail-title">
+      <h2 id="detail-title" class="speak-group-label"></h2>
+      <p class="detail-question">어디가 더 가까우세요?</p>
+      <div id="detail-grid" class="detail-grid" role="group" aria-label="세부 고르기"></div>
+      <button type="button" id="btn-detail-back" class="secondary-btn nav-back">
+        뒤로
+      </button>
+      <p class="app-disclaimer">
+        이 안내는 참고용입니다. 몸이 불편하시면 병원에 가보십시오.
+      </p>
+    </section>
+
     <!-- 2. 말하기 -->
     <section id="screen-speak" class="screen" hidden aria-labelledby="speak-group-label">
       <h2 id="speak-group-label" class="speak-group-label"></h2>
@@ -130,7 +143,7 @@
       </button>
 
       <p class="app-disclaimer">
-        이 안내는 참고용입니다. 몸이 불편하시면 병원에 가보십시오.
+        이 안내는 참고용입니다.<br />몸이 불편하시면 병원에 가보십시오.
       </p>
     </section>
 
@@ -162,6 +175,9 @@
       <div id="lifestyle-section" class="guide-section" hidden>
         <h2 class="section-title">집에서 해보실 것</h2>
         <div id="lifestyle-list" class="card-list"></div>
+        <button type="button" id="btn-more-lifestyle" class="secondary-btn" hidden>
+          다른 정보 더 보기
+        </button>
       </div>
 
       <hr id="guide-divider" class="guide-divider" hidden />

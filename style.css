@@ -112,11 +112,38 @@ body {
   background: var(--point);
 }
 
-.home-question {
-  margin: 16px 0 0;
+.detail-question {
+  margin: 0;
   font-size: 24px;
   font-weight: 600;
+  text-align: center;
   color: var(--ink);
+}
+
+.detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-btn {
+  width: 100%;
+  min-height: 72px;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.detail-btn:hover,
+.detail-btn:active {
+  background: var(--point-soft);
+  border-color: var(--point);
 }
 
 .symptom-grid {
@@ -778,6 +805,7 @@ body.clinic-active .app-copyright-footer {
   }
 
   body.clinic-active #screen-home,
+  body.clinic-active #screen-detail,
   body.clinic-active #screen-speak,
   body.clinic-active #screen-result,
   body.clinic-active #screen-records {

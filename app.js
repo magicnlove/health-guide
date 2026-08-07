@@ -14,6 +14,21 @@ const GROUP_LABELS = {
 
 const RECORD_ONLY_GROUPS = new Set(["energy", "mood", "unknown"]);
 
+const DETAIL_ANY = "어디든";
+
+/** 그룹별 세부 선택 (최대 4개 + 항상 마지막에 어디든) */
+const DETAIL_OPTIONS = {
+  pain: ["무릎", "허리", "어깨", "머리"],
+  stomach: ["소화", "속쓰림", "변"],
+  breath: ["기침", "가래", "숨참"],
+  sleep: ["못 잔다", "새벽에 깬다"],
+  energy: ["힘없다", "어지럽다", "깜빡한다"],
+  eyeear: ["침침하다", "잘 안 들린다"],
+  urine: ["자주 마렵다", "시원찮다"],
+  mood: ["울적하다", "답답하다"],
+  unknown: [],
+};
+
 const HOSPITAL_GUIDE = {
   pain: [
     "넘어지신 뒤에 아플 때",
@@ -57,6 +72,7 @@ const SpeechRecognition =
 
 const state = {
   group: null,
+  detail: null,
   text: "",
   recognition: null,
   listening: false,
@@ -66,7 +82,10 @@ const state = {
   voicePointerDownAt: 0,
   editing: false,
   savedId: null,
-  shuffledTeas: [],
+  orderedLifestyle: [],
+  lifestyleExpanded: false,
+  lifestyleShowAll: false,
+  orderedTeas: [],
   teaExpanded: false,
   recordsTab: "group",
   expandedGroups: new Set(),
@@ -74,10 +93,14 @@ const state = {
 };
 
 const screenHome = document.getElementById("screen-home");
+const screenDetail = document.getElementById("screen-detail");
 const screenSpeak = document.getElementById("screen-speak");
 const screenResult = document.getElementById("screen-result");
 const screenRecords = document.getElementById("screen-records");
 const screenClinic = document.getElementById("screen-clinic");
+const detailTitle = document.getElementById("detail-title");
+const detailGrid = document.getElementById("detail-grid");
+const btnDetailBack = document.getElementById("btn-detail-back");
 const speakGroupLabel = document.getElementById("speak-group-label");
 const btnVoice = document.getElementById("btn-voice");
 const speakText = document.getElementById("speak-text");
@@ -93,6 +116,7 @@ const recordOnlyMsg = document.getElementById("record-only-msg");
 const moodExtra = document.getElementById("mood-extra");
 const lifestyleSection = document.getElementById("lifestyle-section");
 const lifestyleList = document.getElementById("lifestyle-list");
+const btnMoreLifestyle = document.getElementById("btn-more-lifestyle");
 const guideDivider = document.getElementById("guide-divider");
 const teaSection = document.getElementById("tea-section");
 const teaList = document.getElementById("tea-list");
@@ -118,6 +142,7 @@ const btnClinicBack = document.getElementById("btn-clinic-back");
 
 function showScreen(name) {
   screenHome.hidden = name !== "home";
+  screenDetail.hidden = name !== "detail";
   screenSpeak.hidden = name !== "speak";
   screenResult.hidden = name !== "result";
   screenRecords.hidden = name !== "records";
@@ -201,6 +226,15 @@ function sortRecordsByDateAsc(records) {
   });
 }
 
+function recordDetailLabel(record) {
+  if (record.detail) return record.detail;
+  return GROUP_LABELS[record.group] || record.group;
+}
+
+function recordDetailKey(record) {
+  return `${record.group}::${record.detail || ""}`;
+}
+
 function createDeleteButton(recordId) {
   const btn = document.createElement("button");
   btn.type = "button";
@@ -253,8 +287,9 @@ function renderRecordsByGroup(records) {
 
   const groups = {};
   recent.forEach((r) => {
-    if (!groups[r.group]) groups[r.group] = [];
-    groups[r.group].push(r);
+    const key = recordDetailKey(r);
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
   });
 
   const sortedGroups = Object.keys(groups).sort((a, b) => {
@@ -263,11 +298,11 @@ function renderRecordsByGroup(records) {
     return latestB.localeCompare(latestA);
   });
 
-  sortedGroups.forEach((group) => {
-    const groupRecords = sortRecordsByDateDesc(groups[group]);
+  sortedGroups.forEach((key) => {
+    const groupRecords = sortRecordsByDateDesc(groups[key]);
     const count = groupRecords.length;
-    const label = GROUP_LABELS[group] || group;
-    const isOpen = state.expandedGroups.has(group);
+    const label = recordDetailLabel(groupRecords[0]);
+    const isOpen = state.expandedGroups.has(key);
 
     const block = document.createElement("div");
     block.className = "group-block";
@@ -277,10 +312,10 @@ function renderRecordsByGroup(records) {
     toggle.className = "group-toggle" + (isOpen ? " is-open" : "");
     toggle.textContent = `${label} — 최근 3개월 ${count}번`;
     toggle.addEventListener("click", () => {
-      if (state.expandedGroups.has(group)) {
-        state.expandedGroups.delete(group);
+      if (state.expandedGroups.has(key)) {
+        state.expandedGroups.delete(key);
       } else {
-        state.expandedGroups.add(group);
+        state.expandedGroups.add(key);
       }
       renderRecordsByGroup(records);
     });
@@ -361,8 +396,9 @@ function renderClinicScreen() {
 
   const groups = {};
   recent.forEach((r) => {
-    if (!groups[r.group]) groups[r.group] = [];
-    groups[r.group].push(r);
+    const key = recordDetailKey(r);
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
   });
 
   const sortedGroups = Object.keys(groups).sort((a, b) => {
@@ -371,23 +407,23 @@ function renderClinicScreen() {
     return firstA.localeCompare(firstB);
   });
 
-  sortedGroups.forEach((group) => {
-    const groupRecords = sortRecordsByDateAsc(groups[group]);
+  sortedGroups.forEach((key) => {
+    const groupRecords = sortRecordsByDateAsc(groups[key]);
     const firstDate = formatDateShort(groupRecords[0].date);
     const count = groupRecords.length;
-    const label = GROUP_LABELS[group] || group;
+    const label = recordDetailLabel(groupRecords[0]);
 
     const section = document.createElement("section");
     section.className = "clinic-group";
 
     const heading = document.createElement("h2");
     heading.className = "clinic-group-title";
-    heading.textContent = label;
+    heading.textContent = `${label} — 최근 3개월 ${count}번`;
     section.appendChild(heading);
 
     const summary = document.createElement("p");
     summary.className = "clinic-group-summary";
-    summary.textContent = `처음 말씀하신 날: ${firstDate} / ${count}번`;
+    summary.textContent = `처음 말씀하신 날: ${firstDate}`;
     section.appendChild(summary);
 
     const list = document.createElement("ul");
@@ -417,6 +453,56 @@ function shuffle(list) {
     arr[j] = tmp;
   }
   return arr;
+}
+
+/** tags 일치 항목을 앞으로, tags 빈 항목은 맨 뒤로. 어디든이면 정렬 없음. */
+function orderItemsByDetail(items, detail) {
+  const list = items.slice();
+  if (!detail || detail === DETAIL_ANY) {
+    return { ordered: list, showAll: true };
+  }
+
+  const matched = [];
+  const unmatched = [];
+  const emptyTags = [];
+
+  list.forEach((item) => {
+    const tags = Array.isArray(item.tags) ? item.tags : [];
+    if (tags.length === 0) {
+      emptyTags.push(item);
+    } else if (tags.includes(detail)) {
+      matched.push(item);
+    } else {
+      unmatched.push(item);
+    }
+  });
+
+  return {
+    ordered: matched.concat(unmatched, emptyTags),
+    showAll: false,
+  };
+}
+
+function openDetail(group) {
+  state.group = group;
+  state.detail = null;
+  detailTitle.textContent = GROUP_LABELS[group] || group;
+  detailGrid.innerHTML = "";
+
+  const options = (DETAIL_OPTIONS[group] || []).slice(0, 4);
+  options.concat([DETAIL_ANY]).forEach((label) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "detail-btn";
+    btn.textContent = label;
+    btn.addEventListener("click", () => {
+      state.detail = label;
+      openSpeak();
+    });
+    detailGrid.appendChild(btn);
+  });
+
+  showScreen("detail");
 }
 
 const VOICE_LABELS = {
@@ -498,12 +584,11 @@ function setupRecognition() {
   return recognition;
 }
 
-function openSpeak(group) {
-  state.group = group;
+function openSpeak() {
   state.text = "";
   state.savedId = null;
   state.editing = false;
-  speakGroupLabel.textContent = GROUP_LABELS[group] || group;
+  speakGroupLabel.textContent = GROUP_LABELS[state.group] || state.group;
   speakText.value = "";
 
   const supported = speechSupported();
@@ -525,10 +610,14 @@ function openSpeak(group) {
 function goHome() {
   stopListening();
   state.group = null;
+  state.detail = null;
   state.text = "";
   state.savedId = null;
   state.editing = false;
-  state.shuffledTeas = [];
+  state.orderedLifestyle = [];
+  state.lifestyleExpanded = false;
+  state.lifestyleShowAll = false;
+  state.orderedTeas = [];
   state.teaExpanded = false;
   speakText.value = "";
   showScreen("home");
@@ -571,16 +660,13 @@ function setEditing(on) {
   }
 }
 
-function renderLifestyle(group) {
-  const items = (LIFESTYLE_DATA[group] || []).slice();
+function renderLifestyleCards() {
   lifestyleList.innerHTML = "";
+  const items = state.orderedLifestyle;
+  const showAll = state.lifestyleShowAll || state.lifestyleExpanded;
+  const visible = showAll ? items : items.slice(0, 2);
 
-  if (items.length === 0) {
-    lifestyleSection.hidden = true;
-    return false;
-  }
-
-  items.forEach((item) => {
+  visible.forEach((item) => {
     const card = document.createElement("article");
     card.className = "life-card";
     card.innerHTML =
@@ -595,13 +681,32 @@ function renderLifestyle(group) {
     lifestyleList.appendChild(card);
   });
 
+  btnMoreLifestyle.hidden = showAll || items.length <= 2;
+}
+
+function renderLifestyle(group) {
+  const items = (LIFESTYLE_DATA[group] || []).slice();
+  lifestyleList.innerHTML = "";
+
+  if (items.length === 0) {
+    lifestyleSection.hidden = true;
+    btnMoreLifestyle.hidden = true;
+    return false;
+  }
+
+  const ordered = orderItemsByDetail(items, state.detail);
+  state.orderedLifestyle = ordered.ordered;
+  state.lifestyleShowAll = ordered.showAll;
+  state.lifestyleExpanded = false;
+  renderLifestyleCards();
+
   lifestyleSection.hidden = false;
   return true;
 }
 
 function renderTeaCards() {
   teaList.innerHTML = "";
-  const teas = state.shuffledTeas;
+  const teas = state.orderedTeas;
   const visible = state.teaExpanded ? teas : teas.slice(0, 3);
 
   visible.forEach((tea) => {
@@ -640,7 +745,8 @@ function renderTea(group) {
     return false;
   }
 
-  state.shuffledTeas = shuffle(teas);
+  const ordered = orderItemsByDetail(teas, state.detail);
+  state.orderedTeas = ordered.showAll ? shuffle(ordered.ordered) : ordered.ordered;
   state.teaExpanded = false;
   renderTeaCards();
 
@@ -756,6 +862,9 @@ function saveCurrentRecord() {
     if (idx >= 0) {
       records[idx].text = text;
       records[idx].date = todayStr();
+      if (state.detail) {
+        records[idx].detail = state.detail;
+      }
       saveRecords(records);
       setSaveButtonSaved(true);
       updateMoodExtra();
@@ -766,6 +875,7 @@ function saveCurrentRecord() {
   const record = {
     id: String(Date.now()),
     group: state.group,
+    detail: state.detail || DETAIL_ANY,
     text,
     date: todayStr(),
   };
@@ -778,9 +888,11 @@ function saveCurrentRecord() {
 
 document.querySelectorAll("[data-group]").forEach((btn) => {
   btn.addEventListener("click", () => {
-    openSpeak(btn.dataset.group);
+    openDetail(btn.dataset.group);
   });
 });
+
+btnDetailBack.addEventListener("click", goHome);
 
 btnVoice.addEventListener("contextmenu", (event) => {
   event.preventDefault();
@@ -814,7 +926,14 @@ btnVoice.addEventListener("click", () => {
 });
 
 btnSpeakNext.addEventListener("click", openResult);
-btnSpeakBack.addEventListener("click", goHome);
+btnSpeakBack.addEventListener("click", () => {
+  stopListening();
+  if (state.group) {
+    openDetail(state.group);
+  } else {
+    goHome();
+  }
+});
 
 btnEdit.addEventListener("click", () => {
   if (state.editing) {
@@ -825,6 +944,11 @@ btnEdit.addEventListener("click", () => {
 });
 
 btnSave.addEventListener("click", saveCurrentRecord);
+
+btnMoreLifestyle.addEventListener("click", () => {
+  state.lifestyleExpanded = true;
+  renderLifestyleCards();
+});
 
 btnMoreTea.addEventListener("click", () => {
   state.teaExpanded = true;
