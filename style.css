@@ -442,10 +442,22 @@ body {
   text-align: center;
 }
 
-.result-said {
+.result-saved {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 16px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--point-soft);
+}
+
+.result-saved-status {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: center;
 }
 
 .result-text-view {
@@ -453,7 +465,7 @@ body {
   padding: 16px;
   border: 2px solid var(--border);
   border-radius: 12px;
-  background: var(--card);
+  background: var(--bg);
   font-size: 24px;
   font-weight: 600;
   line-height: 1.5;
@@ -461,9 +473,22 @@ body {
   word-break: break-word;
 }
 
-.btn-edit {
+.result-saved-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.btn-edit,
+.btn-delete-current {
   min-height: 64px;
   font-size: 22px;
+}
+
+.btn-delete-current.is-confirm {
+  border-color: var(--hospital);
+  background: var(--hospital);
+  color: #fff;
 }
 
 .record-only-msg,

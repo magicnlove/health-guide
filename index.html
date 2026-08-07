@@ -150,17 +150,18 @@
         <strong>곧바로 119</strong>에 전화하십시오.
       </div>
 
-      <div class="result-said">
-        <h2 class="section-title">내가 한 말</h2>
+      <div class="result-saved">
+        <p class="result-saved-status">✓ 적어두었습니다</p>
         <p id="result-text-view" class="result-text-view"></p>
         <textarea id="result-text-edit" class="result-text-edit" rows="4" hidden></textarea>
-        <button type="button" id="btn-edit" class="secondary-btn btn-edit">고치기</button>
+        <div class="result-saved-actions">
+          <button type="button" id="btn-edit" class="secondary-btn btn-edit">고치기</button>
+          <button type="button" id="btn-delete-current" class="secondary-btn btn-delete-current">지우기</button>
+        </div>
       </div>
 
-      <button type="button" id="btn-save" class="full-btn">이대로 적어두기</button>
-
       <div id="record-only-msg" class="record-only-msg" hidden>
-        적어두었습니다. 이런 이야기는 나중에 의사 선생님께 보여드리면 도움이 됩니다.
+        이런 이야기는 나중에 의사 선생님께 보여드리면 도움이 됩니다.
       </div>
 
       <div id="mood-extra" class="mood-extra" hidden>

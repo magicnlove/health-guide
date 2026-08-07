@@ -90,6 +90,7 @@ const state = {
   recordsTab: "group",
   expandedGroups: new Set(),
   pendingDeleteId: null,
+  pendingDeleteCurrent: false,
   currentScreen: "home",
   navDepth: 0,
   ignoringPop: false,
@@ -114,7 +115,7 @@ const energyAlert = document.getElementById("energy-alert");
 const resultTextView = document.getElementById("result-text-view");
 const resultTextEdit = document.getElementById("result-text-edit");
 const btnEdit = document.getElementById("btn-edit");
-const btnSave = document.getElementById("btn-save");
+const btnDeleteCurrent = document.getElementById("btn-delete-current");
 const recordOnlyMsg = document.getElementById("record-only-msg");
 const moodExtra = document.getElementById("mood-extra");
 const lifestyleSection = document.getElementById("lifestyle-section");
@@ -165,6 +166,7 @@ function resetJourneyState() {
   state.text = "";
   state.savedId = null;
   state.editing = false;
+  state.pendingDeleteCurrent = false;
   state.orderedLifestyle = [];
   state.lifestyleExpanded = false;
   state.lifestyleShowAll = false;
@@ -210,6 +212,9 @@ function restoreScreen(screen) {
     if (!state.group) {
       goHome();
       return;
+    }
+    if (!state.savedId && state.text.trim()) {
+      autoSaveNewRecord();
     }
     renderResultFromState({ preserveOrder: true });
   } else if (screen === "records") {
@@ -741,34 +746,107 @@ function getResultText() {
   return state.text.trim();
 }
 
-function setSaveButtonSaved(saved) {
-  if (saved) {
-    btnSave.textContent = "적어두었습니다";
-    btnSave.disabled = true;
+function showQuotedText(text) {
+  resultTextView.textContent = `"${text}"`;
+}
+
+function updateDeleteCurrentButton() {
+  if (state.pendingDeleteCurrent) {
+    btnDeleteCurrent.classList.add("is-confirm");
+    btnDeleteCurrent.textContent = "정말 지울까요?";
   } else {
-    btnSave.textContent = "이대로 적어두기";
-    btnSave.disabled = false;
+    btnDeleteCurrent.classList.remove("is-confirm");
+    btnDeleteCurrent.textContent = "지우기";
   }
 }
 
 function setEditing(on) {
   state.editing = on;
+  state.pendingDeleteCurrent = false;
+  updateDeleteCurrentButton();
+
   if (on) {
     resultTextEdit.value = state.text;
     resultTextView.hidden = true;
     resultTextEdit.hidden = false;
     btnEdit.textContent = "다 고쳤어요";
+    btnDeleteCurrent.hidden = true;
     resultTextEdit.focus();
-  } else {
-    state.text = resultTextEdit.value.trim();
-    resultTextView.textContent = state.text;
-    resultTextView.hidden = false;
-    resultTextEdit.hidden = true;
-    btnEdit.textContent = "고치기";
-    if (state.savedId) {
-      setSaveButtonSaved(false);
-    }
+    return;
   }
+
+  const text = resultTextEdit.value.trim();
+  if (!text) {
+    resultTextEdit.focus();
+    state.editing = true;
+    return;
+  }
+
+  state.text = text;
+  showQuotedText(state.text);
+  resultTextView.hidden = false;
+  resultTextEdit.hidden = true;
+  btnEdit.textContent = "고치기";
+  btnDeleteCurrent.hidden = false;
+  speakText.value = state.text;
+  updateSavedRecordText();
+}
+
+function autoSaveNewRecord() {
+  const text = state.text.trim();
+  if (!text || !state.group) return;
+
+  const records = loadRecords();
+  const record = {
+    id: String(Date.now()),
+    group: state.group,
+    detail: state.detail || DETAIL_ANY,
+    text,
+    date: todayStr(),
+  };
+  records.push(record);
+  saveRecords(records);
+  state.savedId = record.id;
+  updateMoodExtra();
+}
+
+function updateSavedRecordText() {
+  const text = state.text.trim();
+  if (!text || !state.savedId) return;
+
+  const records = loadRecords();
+  const idx = records.findIndex((r) => r.id === state.savedId);
+  if (idx < 0) {
+    autoSaveNewRecord();
+    return;
+  }
+
+  records[idx].text = text;
+  records[idx].date = todayStr();
+  if (state.detail) {
+    records[idx].detail = state.detail;
+  }
+  saveRecords(records);
+  updateMoodExtra();
+}
+
+function deleteCurrentSavedRecord() {
+  if (!state.savedId) return;
+
+  if (!state.pendingDeleteCurrent) {
+    state.pendingDeleteCurrent = true;
+    updateDeleteCurrentButton();
+    return;
+  }
+
+  const id = state.savedId;
+  const records = loadRecords().filter((r) => r.id !== id);
+  saveRecords(records);
+  state.savedId = null;
+  state.pendingDeleteCurrent = false;
+  updateDeleteCurrentButton();
+  updateMoodExtra();
+  history.back();
 }
 
 function renderLifestyleCards() {
@@ -931,18 +1009,15 @@ function renderResultFromState(options = {}) {
   const preserveOrder = Boolean(options.preserveOrder);
   const text = state.text || "";
 
-  resultTextView.textContent = text;
+  showQuotedText(text);
   resultTextView.hidden = false;
   resultTextEdit.hidden = true;
   resultTextEdit.value = text;
   btnEdit.textContent = "고치기";
+  btnDeleteCurrent.hidden = false;
   state.editing = false;
-
-  if (state.savedId) {
-    setSaveButtonSaved(true);
-  } else {
-    setSaveButtonSaved(false);
-  }
+  state.pendingDeleteCurrent = false;
+  updateDeleteCurrentButton();
 
   energyAlert.hidden = state.group !== "energy";
 
@@ -973,47 +1048,10 @@ function openResult() {
   stopListening();
   state.text = text;
   state.savedId = null;
+  state.pendingDeleteCurrent = false;
+  autoSaveNewRecord();
   renderResultFromState();
   navigateTo("result");
-}
-
-function saveCurrentRecord() {
-  const text = getResultText();
-  if (!text || !state.group) return;
-
-  if (state.editing) {
-    setEditing(false);
-  }
-
-  const records = loadRecords();
-
-  if (state.savedId) {
-    const idx = records.findIndex((r) => r.id === state.savedId);
-    if (idx >= 0) {
-      records[idx].text = text;
-      records[idx].date = todayStr();
-      if (state.detail) {
-        records[idx].detail = state.detail;
-      }
-      saveRecords(records);
-      setSaveButtonSaved(true);
-      updateMoodExtra();
-      return;
-    }
-  }
-
-  const record = {
-    id: String(Date.now()),
-    group: state.group,
-    detail: state.detail || DETAIL_ANY,
-    text,
-    date: todayStr(),
-  };
-  records.push(record);
-  saveRecords(records);
-  state.savedId = record.id;
-  setSaveButtonSaved(true);
-  updateMoodExtra();
 }
 
 document.querySelectorAll("[data-group]").forEach((btn) => {
@@ -1070,7 +1108,7 @@ btnEdit.addEventListener("click", () => {
   }
 });
 
-btnSave.addEventListener("click", saveCurrentRecord);
+btnDeleteCurrent.addEventListener("click", deleteCurrentSavedRecord);
 
 btnMoreLifestyle.addEventListener("click", () => {
   state.lifestyleExpanded = true;
