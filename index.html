@@ -11,13 +11,16 @@
 </head>
 <body>
   <main class="app">
-    <div class="app-brand">
+    <button type="button" id="btn-top-back" class="top-back" hidden>
+      ← 뒤로
+    </button>
+    <button type="button" id="btn-logo-home" class="app-brand" aria-label="처음으로">
       <img
         src="ci-logo.png"
         alt="한화투자증권"
         class="ci-logo"
       />
-    </div>
+    </button>
 
     <!-- 1. 홈 -->
     <section id="screen-home" class="screen" aria-labelledby="home-title">
@@ -82,9 +85,6 @@
       <h2 id="detail-title" class="speak-group-label"></h2>
       <p class="detail-question">어디가 더 가까우세요?</p>
       <div id="detail-grid" class="detail-grid" role="group" aria-label="세부 고르기"></div>
-      <button type="button" id="btn-detail-back" class="secondary-btn nav-back">
-        뒤로
-      </button>
       <p class="app-disclaimer">
         이 안내는 참고용입니다. 몸이 불편하시면 병원에 가보십시오.
       </p>
@@ -136,10 +136,6 @@
 
       <button type="button" id="btn-speak-next" class="full-btn">
         다음
-      </button>
-
-      <button type="button" id="btn-speak-back" class="secondary-btn nav-back">
-        뒤로
       </button>
 
       <p class="app-disclaimer">
@@ -201,10 +197,6 @@
       <p class="app-disclaimer">
         이 안내는 참고용입니다. 몸이 불편하시면 병원에 가보십시오.
       </p>
-
-      <button type="button" id="btn-result-home" class="secondary-btn nav-back">
-        처음으로
-      </button>
     </section>
 
     <!-- 4. 기록 -->
@@ -242,12 +234,8 @@
         아직 적어 둔 기록이 없습니다.
       </p>
 
-      <div id="records-by-group" class="records-panel" role="tabpanel"></div>
-      <div id="records-by-date" class="records-panel" role="tabpanel" hidden></div>
-
-      <button type="button" id="btn-records-back" class="secondary-btn nav-back">
-        처음으로
-      </button>
+      <div id="records-by-group" class="records-panel records-panel-group" role="tabpanel"></div>
+      <div id="records-by-date" class="records-panel records-panel-date" role="tabpanel" hidden></div>
 
       <p class="app-disclaimer">
         이 안내는 참고용입니다. 몸이 불편하시면 병원에 가보십시오.
@@ -270,10 +258,6 @@
       <p class="clinic-footer">
         이 화면을 사진으로 찍어 자녀분께 보내셔도 됩니다
       </p>
-
-      <button type="button" id="btn-clinic-back" class="secondary-btn nav-back no-print">
-        뒤로
-      </button>
     </section>
   </main>
 

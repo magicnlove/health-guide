@@ -44,16 +44,52 @@ body {
   padding: 64px 20px 24px;
 }
 
+.top-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  min-height: 56px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.top-back:hover,
+.top-back:active {
+  background: var(--card);
+}
+
+.top-back[hidden] {
+  display: none;
+}
+
 .app-brand {
   position: absolute;
   top: 0;
   right: 0;
+  z-index: 2;
   display: flex;
   justify-content: flex-end;
   align-items: flex-start;
   margin: 0;
   padding: 0;
+  border: none;
+  background: transparent;
   line-height: 0;
+  cursor: pointer;
 }
 
 .ci-logo {
@@ -61,6 +97,7 @@ body {
   height: 56px;
   width: auto;
   max-width: none;
+  pointer-events: none;
 }
 
 .screen {
@@ -619,6 +656,14 @@ body {
   gap: 12px;
 }
 
+.records-panel-group {
+  gap: 10px;
+}
+
+.records-panel-date {
+  gap: 0;
+}
+
 .group-block {
   border: 2px solid var(--border);
   border-radius: 12px;
@@ -662,8 +707,17 @@ body {
   background: var(--bg);
 }
 
+.record-item-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .record-item-text {
-  margin: 0 0 12px;
+  margin: 0;
+  flex: 1;
   font-size: 20px;
   line-height: 1.45;
   white-space: pre-wrap;
@@ -671,16 +725,61 @@ body {
 }
 
 .record-item-meta {
-  margin: 0 0 12px;
-  font-size: 18px;
+  margin: 0;
+  flex-shrink: 0;
+  font-size: 16px;
   font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
 }
 
-.record-item-date {
-  margin: 0 0 12px;
-  font-size: 24px;
+.date-day-block {
+  padding: 0 0 8px;
+  border: none;
+  border-top: 2px solid var(--border);
+  background: transparent;
+}
+
+.date-day-block:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.date-day-heading {
+  margin: 16px 0 10px;
+  font-size: 22px;
   font-weight: 700;
-  line-height: 1.4;
+  color: var(--ink);
+}
+
+.date-day-block:first-child .date-day-heading {
+  margin-top: 0;
+}
+
+.date-record-item {
+  padding: 14px 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  border-radius: 0;
+}
+
+.date-record-item:last-child {
+  border-bottom: none;
+}
+
+.date-record-line {
+  margin: 0 0 12px;
+  font-size: 20px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.date-record-group {
+  font-size: 16px;
+  font-weight: 700;
+  margin-right: 6px;
 }
 
 .btn-delete {
@@ -799,6 +898,7 @@ body.clinic-active .app-copyright-footer {
 @media print {
   body.clinic-active .app-copyright-footer,
   body.clinic-active .app-brand,
+  body.clinic-active .top-back,
   body.clinic-active .app-disclaimer,
   body.clinic-active .no-print {
     display: none !important;

@@ -90,6 +90,9 @@ const state = {
   recordsTab: "group",
   expandedGroups: new Set(),
   pendingDeleteId: null,
+  currentScreen: "home",
+  navDepth: 0,
+  ignoringPop: false,
 };
 
 const screenHome = document.getElementById("screen-home");
@@ -98,14 +101,14 @@ const screenSpeak = document.getElementById("screen-speak");
 const screenResult = document.getElementById("screen-result");
 const screenRecords = document.getElementById("screen-records");
 const screenClinic = document.getElementById("screen-clinic");
+const btnTopBack = document.getElementById("btn-top-back");
+const btnLogoHome = document.getElementById("btn-logo-home");
 const detailTitle = document.getElementById("detail-title");
 const detailGrid = document.getElementById("detail-grid");
-const btnDetailBack = document.getElementById("btn-detail-back");
 const speakGroupLabel = document.getElementById("speak-group-label");
 const btnVoice = document.getElementById("btn-voice");
 const speakText = document.getElementById("speak-text");
 const btnSpeakNext = document.getElementById("btn-speak-next");
-const btnSpeakBack = document.getElementById("btn-speak-back");
 
 const energyAlert = document.getElementById("energy-alert");
 const resultTextView = document.getElementById("result-text-view");
@@ -126,7 +129,6 @@ const teaMedicineWarning = document.getElementById("tea-medicine-warning");
 const teaCaffeine = document.getElementById("tea-caffeine");
 const hospitalSection = document.getElementById("hospital-section");
 const hospitalList = document.getElementById("hospital-list");
-const btnResultHome = document.getElementById("btn-result-home");
 
 const btnClinic = document.getElementById("btn-clinic");
 const tabByGroup = document.getElementById("tab-by-group");
@@ -134,13 +136,11 @@ const tabByDate = document.getElementById("tab-by-date");
 const recordsEmpty = document.getElementById("records-empty");
 const recordsByGroup = document.getElementById("records-by-group");
 const recordsByDate = document.getElementById("records-by-date");
-const btnRecordsBack = document.getElementById("btn-records-back");
 
 const clinicEmpty = document.getElementById("clinic-empty");
 const clinicContent = document.getElementById("clinic-content");
-const btnClinicBack = document.getElementById("btn-clinic-back");
 
-function showScreen(name) {
+function showScreenOnly(name) {
   screenHome.hidden = name !== "home";
   screenDetail.hidden = name !== "detail";
   screenSpeak.hidden = name !== "speak";
@@ -148,8 +148,100 @@ function showScreen(name) {
   screenRecords.hidden = name !== "records";
   screenClinic.hidden = name !== "clinic";
   document.body.classList.toggle("clinic-active", name === "clinic");
+  btnTopBack.hidden = name === "home";
+  state.currentScreen = name;
   window.scrollTo(0, 0);
 }
+
+function navigateTo(name) {
+  showScreenOnly(name);
+  history.pushState({ screen: name }, "", "");
+  state.navDepth += 1;
+}
+
+function resetJourneyState() {
+  state.group = null;
+  state.detail = null;
+  state.text = "";
+  state.savedId = null;
+  state.editing = false;
+  state.orderedLifestyle = [];
+  state.lifestyleExpanded = false;
+  state.lifestyleShowAll = false;
+  state.orderedTeas = [];
+  state.teaExpanded = false;
+  speakText.value = "";
+}
+
+function goHome() {
+  stopListening();
+  const depth = state.navDepth;
+  resetJourneyState();
+  showScreenOnly("home");
+  if (depth > 0) {
+    state.ignoringPop = true;
+    history.go(-depth);
+  } else {
+    history.replaceState({ screen: "home" }, "", "");
+  }
+}
+
+function restoreScreen(screen) {
+  stopListening();
+
+  if (screen === "detail") {
+    if (!state.group) {
+      goHome();
+      return;
+    }
+    renderDetailGrid();
+  } else if (screen === "speak") {
+    if (!state.group) {
+      goHome();
+      return;
+    }
+    if (state.editing) {
+      state.text = resultTextEdit.value.trim();
+      state.editing = false;
+    }
+    prepareSpeakChrome();
+    speakText.value = state.text || speakText.value;
+  } else if (screen === "result") {
+    if (!state.group) {
+      goHome();
+      return;
+    }
+    renderResultFromState({ preserveOrder: true });
+  } else if (screen === "records") {
+    renderRecordsScreen();
+  } else if (screen === "clinic") {
+    renderClinicScreen();
+  } else {
+    screen = "home";
+  }
+
+  showScreenOnly(screen);
+}
+
+window.addEventListener("popstate", (event) => {
+  if (state.ignoringPop) {
+    state.ignoringPop = false;
+    state.navDepth = 0;
+    history.replaceState({ screen: "home" }, "", "");
+    showScreenOnly("home");
+    return;
+  }
+
+  state.navDepth = Math.max(0, state.navDepth - 1);
+  const screen = event.state && event.state.screen ? event.state.screen : "home";
+  if (screen === "home") {
+    stopListening();
+    resetJourneyState();
+    showScreenOnly("home");
+    return;
+  }
+  restoreScreen(screen);
+});
 
 function speechSupported() {
   return Boolean(SpeechRecognition);
@@ -255,27 +347,24 @@ function createDeleteButton(recordId) {
   return btn;
 }
 
-function createRecordItem(record, showDateInTitle) {
+function createRecordItem(record) {
   const item = document.createElement("article");
   item.className = "record-item";
 
-  if (showDateInTitle) {
-    const title = document.createElement("p");
-    title.className = "record-item-date";
-    title.textContent = `${formatDateShort(record.date)} — ${record.text}`;
-    item.appendChild(title);
-  } else {
-    const meta = document.createElement("p");
-    meta.className = "record-item-meta";
-    meta.textContent = formatDateShort(record.date);
-    item.appendChild(meta);
+  const main = document.createElement("div");
+  main.className = "record-item-main";
 
-    const text = document.createElement("p");
-    text.className = "record-item-text";
-    text.textContent = record.text;
-    item.appendChild(text);
-  }
+  const text = document.createElement("p");
+  text.className = "record-item-text";
+  text.textContent = record.text;
+  main.appendChild(text);
 
+  const meta = document.createElement("p");
+  meta.className = "record-item-meta";
+  meta.textContent = formatDateShort(record.date);
+  main.appendChild(meta);
+
+  item.appendChild(main);
   item.appendChild(createDeleteButton(record.id));
   return item;
 }
@@ -293,6 +382,8 @@ function renderRecordsByGroup(records) {
   });
 
   const sortedGroups = Object.keys(groups).sort((a, b) => {
+    const countDiff = groups[b].length - groups[a].length;
+    if (countDiff !== 0) return countDiff;
     const latestA = groups[a].reduce((max, r) => (r.date > max ? r.date : max), "");
     const latestB = groups[b].reduce((max, r) => (r.date > max ? r.date : max), "");
     return latestB.localeCompare(latestA);
@@ -324,7 +415,7 @@ function renderRecordsByGroup(records) {
     const items = document.createElement("div");
     items.className = "group-items" + (isOpen ? " is-open" : "");
     groupRecords.forEach((record) => {
-      items.appendChild(createRecordItem(record, false));
+      items.appendChild(createRecordItem(record));
     });
     block.appendChild(items);
 
@@ -334,8 +425,37 @@ function renderRecordsByGroup(records) {
 
 function renderRecordsByDate(records) {
   recordsByDate.innerHTML = "";
-  sortRecordsByDateDesc(records).forEach((record) => {
-    recordsByDate.appendChild(createRecordItem(record, true));
+  const sorted = sortRecordsByDateDesc(records);
+  let currentDate = null;
+  let dayBlock = null;
+
+  sorted.forEach((record) => {
+    if (record.date !== currentDate) {
+      currentDate = record.date;
+      dayBlock = document.createElement("section");
+      dayBlock.className = "date-day-block";
+
+      const heading = document.createElement("h3");
+      heading.className = "date-day-heading";
+      heading.textContent = formatDateShort(record.date);
+      dayBlock.appendChild(heading);
+      recordsByDate.appendChild(dayBlock);
+    }
+
+    const item = document.createElement("article");
+    item.className = "date-record-item";
+
+    const line = document.createElement("p");
+    line.className = "date-record-line";
+
+    const groupTag = document.createElement("span");
+    groupTag.className = "date-record-group";
+    groupTag.textContent = `[${GROUP_LABELS[record.group] || record.group}]`;
+    line.appendChild(groupTag);
+    line.appendChild(document.createTextNode(` ${record.text}`));
+    item.appendChild(line);
+    item.appendChild(createDeleteButton(record.id));
+    dayBlock.appendChild(item);
   });
 }
 
@@ -382,7 +502,12 @@ function openRecords() {
   stopListening();
   state.pendingDeleteId = null;
   setRecordsTab(state.recordsTab);
-  showScreen("records");
+  navigateTo("records");
+}
+
+function openClinic() {
+  renderClinicScreen();
+  navigateTo("clinic");
 }
 
 function renderClinicScreen() {
@@ -439,11 +564,6 @@ function renderClinicScreen() {
   });
 }
 
-function openClinic() {
-  renderClinicScreen();
-  showScreen("clinic");
-}
-
 function shuffle(list) {
   const arr = list.slice();
   for (let i = arr.length - 1; i > 0; i -= 1) {
@@ -483,13 +603,11 @@ function orderItemsByDetail(items, detail) {
   };
 }
 
-function openDetail(group) {
-  state.group = group;
-  state.detail = null;
-  detailTitle.textContent = GROUP_LABELS[group] || group;
+function renderDetailGrid() {
+  detailTitle.textContent = GROUP_LABELS[state.group] || state.group;
   detailGrid.innerHTML = "";
 
-  const options = (DETAIL_OPTIONS[group] || []).slice(0, 4);
+  const options = (DETAIL_OPTIONS[state.group] || []).slice(0, 4);
   options.concat([DETAIL_ANY]).forEach((label) => {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -497,12 +615,27 @@ function openDetail(group) {
     btn.textContent = label;
     btn.addEventListener("click", () => {
       state.detail = label;
-      openSpeak();
+      state.text = "";
+      state.savedId = null;
+      state.editing = false;
+      speakText.value = "";
+      prepareSpeakChrome();
+      navigateTo("speak");
     });
     detailGrid.appendChild(btn);
   });
+}
 
-  showScreen("detail");
+function startGroupFlow(group) {
+  stopListening();
+  state.group = group;
+  state.detail = null;
+  state.text = "";
+  state.savedId = null;
+  state.editing = false;
+  speakText.value = "";
+  renderDetailGrid();
+  navigateTo("detail");
 }
 
 const VOICE_LABELS = {
@@ -584,12 +717,8 @@ function setupRecognition() {
   return recognition;
 }
 
-function openSpeak() {
-  state.text = "";
-  state.savedId = null;
-  state.editing = false;
+function prepareSpeakChrome() {
   speakGroupLabel.textContent = GROUP_LABELS[state.group] || state.group;
-  speakText.value = "";
 
   const supported = speechSupported();
   btnVoice.hidden = !supported;
@@ -599,28 +728,10 @@ function openSpeak() {
     if (!state.recognition) {
       state.recognition = setupRecognition();
     }
-    updateVoiceButton("idle");
-  } else {
-    speakText.focus();
+    if (!state.listening) {
+      updateVoiceButton(state.voiceMode === "done" && speakText.value ? "done" : "idle");
+    }
   }
-
-  showScreen("speak");
-}
-
-function goHome() {
-  stopListening();
-  state.group = null;
-  state.detail = null;
-  state.text = "";
-  state.savedId = null;
-  state.editing = false;
-  state.orderedLifestyle = [];
-  state.lifestyleExpanded = false;
-  state.lifestyleShowAll = false;
-  state.orderedTeas = [];
-  state.teaExpanded = false;
-  speakText.value = "";
-  showScreen("home");
 }
 
 function getResultText() {
@@ -684,20 +795,24 @@ function renderLifestyleCards() {
   btnMoreLifestyle.hidden = showAll || items.length <= 2;
 }
 
-function renderLifestyle(group) {
+function renderLifestyle(group, options = {}) {
+  const resort = options.resort !== false;
   const items = (LIFESTYLE_DATA[group] || []).slice();
   lifestyleList.innerHTML = "";
 
   if (items.length === 0) {
     lifestyleSection.hidden = true;
     btnMoreLifestyle.hidden = true;
+    state.orderedLifestyle = [];
     return false;
   }
 
-  const ordered = orderItemsByDetail(items, state.detail);
-  state.orderedLifestyle = ordered.ordered;
-  state.lifestyleShowAll = ordered.showAll;
-  state.lifestyleExpanded = false;
+  if (resort || state.orderedLifestyle.length === 0) {
+    const ordered = orderItemsByDetail(items, state.detail);
+    state.orderedLifestyle = ordered.ordered;
+    state.lifestyleShowAll = ordered.showAll;
+    state.lifestyleExpanded = false;
+  }
   renderLifestyleCards();
 
   lifestyleSection.hidden = false;
@@ -736,18 +851,22 @@ function renderTeaCards() {
   btnMoreTea.hidden = state.teaExpanded || teas.length <= 3;
 }
 
-function renderTea(group) {
+function renderTea(group, options = {}) {
+  const reshuffle = options.reshuffle !== false;
   const teas = TEA_DATA[group] || [];
   teaList.innerHTML = "";
 
   if (teas.length === 0) {
     teaSection.hidden = true;
+    state.orderedTeas = [];
     return false;
   }
 
-  const ordered = orderItemsByDetail(teas, state.detail);
-  state.orderedTeas = ordered.showAll ? shuffle(ordered.ordered) : ordered.ordered;
-  state.teaExpanded = false;
+  if (reshuffle || state.orderedTeas.length === 0) {
+    const ordered = orderItemsByDetail(teas, state.detail);
+    state.orderedTeas = ordered.showAll ? shuffle(ordered.ordered) : ordered.ordered;
+    state.teaExpanded = false;
+  }
   renderTeaCards();
 
   teaDisclaimer.textContent = TEA_DISCLAIMER;
@@ -808,24 +927,22 @@ function updateMoodExtra() {
   moodExtra.hidden = countMoodInLast14Days() < 3;
 }
 
-function openResult() {
-  const text = speakText.value.trim();
-  if (!text) {
-    speakText.focus();
-    return;
-  }
-
-  stopListening();
-  state.text = text;
-  state.savedId = null;
-  state.editing = false;
+function renderResultFromState(options = {}) {
+  const preserveOrder = Boolean(options.preserveOrder);
+  const text = state.text || "";
 
   resultTextView.textContent = text;
   resultTextView.hidden = false;
   resultTextEdit.hidden = true;
   resultTextEdit.value = text;
   btnEdit.textContent = "고치기";
-  setSaveButtonSaved(false);
+  state.editing = false;
+
+  if (state.savedId) {
+    setSaveButtonSaved(true);
+  } else {
+    setSaveButtonSaved(false);
+  }
 
   energyAlert.hidden = state.group !== "energy";
 
@@ -837,14 +954,27 @@ function openResult() {
     guideDivider.hidden = true;
     teaSection.hidden = true;
   } else {
-    const hasLife = renderLifestyle(state.group);
-    const hasTea = renderTea(state.group);
+    const hasLife = renderLifestyle(state.group, { resort: !preserveOrder });
+    const hasTea = renderTea(state.group, { reshuffle: !preserveOrder });
     guideDivider.hidden = !(hasLife && hasTea);
   }
 
   updateMoodExtra();
   renderHospital(state.group);
-  showScreen("result");
+}
+
+function openResult() {
+  const text = speakText.value.trim();
+  if (!text) {
+    speakText.focus();
+    return;
+  }
+
+  stopListening();
+  state.text = text;
+  state.savedId = null;
+  renderResultFromState();
+  navigateTo("result");
 }
 
 function saveCurrentRecord() {
@@ -888,11 +1018,16 @@ function saveCurrentRecord() {
 
 document.querySelectorAll("[data-group]").forEach((btn) => {
   btn.addEventListener("click", () => {
-    openDetail(btn.dataset.group);
+    startGroupFlow(btn.dataset.group);
   });
 });
 
-btnDetailBack.addEventListener("click", goHome);
+btnTopBack.addEventListener("click", () => {
+  if (state.currentScreen === "home") return;
+  history.back();
+});
+
+btnLogoHome.addEventListener("click", goHome);
 
 btnVoice.addEventListener("contextmenu", (event) => {
   event.preventDefault();
@@ -926,14 +1061,6 @@ btnVoice.addEventListener("click", () => {
 });
 
 btnSpeakNext.addEventListener("click", openResult);
-btnSpeakBack.addEventListener("click", () => {
-  stopListening();
-  if (state.group) {
-    openDetail(state.group);
-  } else {
-    goHome();
-  }
-});
 
 btnEdit.addEventListener("click", () => {
   if (state.editing) {
@@ -955,15 +1082,13 @@ btnMoreTea.addEventListener("click", () => {
   renderTeaCards();
 });
 
-btnResultHome.addEventListener("click", goHome);
-
 document.getElementById("btn-records").addEventListener("click", openRecords);
-btnRecordsBack.addEventListener("click", goHome);
 
 tabByGroup.addEventListener("click", () => setRecordsTab("group"));
 tabByDate.addEventListener("click", () => setRecordsTab("date"));
 
 btnClinic.addEventListener("click", openClinic);
-btnClinicBack.addEventListener("click", () => showScreen("records"));
 
-showScreen("home");
+history.replaceState({ screen: "home" }, "", "");
+state.navDepth = 0;
+showScreenOnly("home");
