@@ -33,25 +33,29 @@ body {
 }
 
 .app {
+  position: relative;
   max-width: 480px;
   margin: 0 auto;
-  padding: 14px 20px 148px;
+  padding: 64px 20px 148px;
 }
 
 .app-brand {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: flex;
   justify-content: flex-end;
-  align-items: center;
-  min-height: 56px;
-  padding: 14px 0;
-  margin-bottom: 4px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0;
+  line-height: 0;
 }
 
 .ci-logo {
   display: block;
-  height: 28px;
+  height: 56px;
   width: auto;
-  max-width: 100%;
+  max-width: none;
 }
 
 .screen {
