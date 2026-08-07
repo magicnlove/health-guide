@@ -93,6 +93,7 @@ const state = {
   pendingDeleteId: null,
   pendingDeleteCurrent: false,
   clearSpeakOnReturn: false,
+  clinicSort: "frequency",
   currentScreen: "home",
   navDepth: 0,
   ignoringPop: false,
@@ -143,6 +144,10 @@ const recordsByDate = document.getElementById("records-by-date");
 
 const clinicEmpty = document.getElementById("clinic-empty");
 const clinicContent = document.getElementById("clinic-content");
+const clinicSummary = document.getElementById("clinic-summary");
+const clinicSort = document.getElementById("clinic-sort");
+const clinicSortRecent = document.getElementById("clinic-sort-recent");
+const clinicSortFrequency = document.getElementById("clinic-sort-frequency");
 
 function showScreenOnly(name) {
   screenHome.hidden = name !== "home";
@@ -433,7 +438,18 @@ function createRecordItem(record) {
 }
 
 /** 증상별·진료용이 같이 쓰는 대분류→세부 묶음 */
-function buildSymptomTree(records) {
+function sortSymptomNodes(a, b, sortMode) {
+  if (sortMode === "recent") {
+    const byDate = b.latestDate.localeCompare(a.latestDate);
+    if (byDate !== 0) return byDate;
+    return b.count - a.count;
+  }
+  const byCount = b.count - a.count;
+  if (byCount !== 0) return byCount;
+  return b.latestDate.localeCompare(a.latestDate);
+}
+
+function buildSymptomTree(records, sortMode = "frequency") {
   const cutoff = threeMonthsCutoffStr();
   const recent = records.filter((r) => r.date >= cutoff);
 
@@ -443,59 +459,77 @@ function buildSymptomTree(records) {
     byGroup[r.group].push(r);
   });
 
-  const tree = Object.keys(byGroup)
-    .map((groupKey) => {
-      const groupRecords = byGroup[groupKey];
-      const byDetail = {};
+  const tree = Object.keys(byGroup).map((groupKey) => {
+    const groupRecords = byGroup[groupKey];
+    const byDetail = {};
 
-      groupRecords.forEach((r) => {
-        const detailKey = isDetailAny(r.detail) ? DETAIL_ANY : r.detail;
-        if (!byDetail[detailKey]) byDetail[detailKey] = [];
-        byDetail[detailKey].push(r);
-      });
+    groupRecords.forEach((r) => {
+      const detailKey = isDetailAny(r.detail) ? DETAIL_ANY : r.detail;
+      if (!byDetail[detailKey]) byDetail[detailKey] = [];
+      byDetail[detailKey].push(r);
+    });
 
-      const details = Object.keys(byDetail)
-        .map((detailKey) => {
-          const list = byDetail[detailKey];
-          const latestDate = list.reduce(
-            (max, r) => (r.date > max ? r.date : max),
-            ""
-          );
-          return {
-            detailKey,
-            detailLabel: detailKey,
-            count: list.length,
-            latestDate,
-            recordsAsc: sortRecordsByDateAsc(list),
-            recordsDesc: sortRecordsByDateDesc(list),
-          };
-        })
-        .sort((a, b) => {
-          if (b.count !== a.count) return b.count - a.count;
-          return b.latestDate.localeCompare(a.latestDate);
-        });
-
-      const latestDate = groupRecords.reduce(
+    const details = Object.keys(byDetail).map((detailKey) => {
+      const list = byDetail[detailKey];
+      const latestDate = list.reduce(
         (max, r) => (r.date > max ? r.date : max),
         ""
       );
-
       return {
-        groupKey,
-        groupLabel: GROUP_LABELS[groupKey] || groupKey,
-        count: groupRecords.length,
+        detailKey,
+        detailLabel: detailKey,
+        count: list.length,
         latestDate,
-        details,
+        recordsAsc: sortRecordsByDateAsc(list),
+        recordsDesc: sortRecordsByDateDesc(list),
       };
-    })
-    .sort((a, b) => {
-      if (b.count !== a.count) return b.count - a.count;
-      return b.latestDate.localeCompare(a.latestDate);
     });
+
+    const latestDate = groupRecords.reduce(
+      (max, r) => (r.date > max ? r.date : max),
+      ""
+    );
+
+    return {
+      groupKey,
+      groupLabel: GROUP_LABELS[groupKey] || groupKey,
+      count: groupRecords.length,
+      latestDate,
+      details,
+    };
+  });
+
+  tree.forEach((node) => {
+    node.details.sort((a, b) => sortSymptomNodes(a, b, sortMode));
+  });
+  tree.sort((a, b) => sortSymptomNodes(a, b, sortMode));
 
   return {
     tree,
+    recent,
     totalCount: recent.length,
+  };
+}
+
+function buildClinicSummary(recent, tree) {
+  if (!recent.length || !tree.length) return null;
+
+  const topGroup = tree
+    .slice()
+    .sort((a, b) => sortSymptomNodes(a, b, "frequency"))[0];
+  const latestRecord = sortRecordsByDateDesc(recent)[0];
+  const firstRecord = sortRecordsByDateAsc(recent)[0];
+  const latestDetailLabel = isDetailAny(latestRecord.detail)
+    ? GROUP_LABELS[latestRecord.group] || latestRecord.group
+    : latestRecord.detail;
+
+  return {
+    totalCount: recent.length,
+    topGroupLabel: topGroup.groupLabel,
+    topGroupCount: topGroup.count,
+    latestDateLabel: formatDateShort(latestRecord.date),
+    latestDetailLabel,
+    firstDateLabel: formatDateShort(firstRecord.date),
   };
 }
 
@@ -659,15 +693,58 @@ function openRecords() {
 }
 
 function openClinic() {
+  state.clinicSort = "frequency";
   renderClinicScreen();
   navigateTo("clinic");
 }
 
+function setClinicSort(sortMode) {
+  state.clinicSort = sortMode;
+  renderClinicScreen();
+}
+
+function updateClinicSortButtons() {
+  const isRecent = state.clinicSort === "recent";
+  clinicSortRecent.classList.toggle("is-active", isRecent);
+  clinicSortFrequency.classList.toggle("is-active", !isRecent);
+}
+
+function renderClinicSummary(summary) {
+  clinicSummary.innerHTML = "";
+  if (!summary) {
+    clinicSummary.hidden = true;
+    return;
+  }
+
+  const lines = [
+    `최근 3개월 · 모두 ${summary.totalCount}번`,
+    `가장 잦음: ${summary.topGroupLabel} (${summary.topGroupCount}번)`,
+    `가장 최근: ${summary.latestDateLabel} · ${summary.latestDetailLabel}`,
+    `처음 적은 날: ${summary.firstDateLabel}`,
+  ];
+
+  lines.forEach((text) => {
+    const p = document.createElement("p");
+    p.className = "clinic-summary-line";
+    p.textContent = text;
+    clinicSummary.appendChild(p);
+  });
+
+  clinicSummary.hidden = false;
+}
+
 function renderClinicScreen() {
-  const { tree, totalCount } = buildSymptomTree(loadRecords());
+  const { tree, recent, totalCount } = buildSymptomTree(
+    loadRecords(),
+    state.clinicSort
+  );
+  const summary = buildClinicSummary(recent, tree);
 
   clinicContent.innerHTML = "";
   clinicEmpty.hidden = totalCount > 0;
+  clinicSort.hidden = totalCount === 0;
+  updateClinicSortButtons();
+  renderClinicSummary(summary);
 
   if (totalCount === 0) return;
 
@@ -1273,6 +1350,8 @@ tabByGroup.addEventListener("click", () => setRecordsTab("group"));
 tabByDate.addEventListener("click", () => setRecordsTab("date"));
 
 btnClinic.addEventListener("click", openClinic);
+clinicSortRecent.addEventListener("click", () => setClinicSort("recent"));
+clinicSortFrequency.addEventListener("click", () => setClinicSort("frequency"));
 
 history.replaceState({ screen: "home" }, "", "");
 state.navDepth = 0;

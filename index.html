@@ -76,7 +76,7 @@
       </button>
 
       <p class="app-disclaimer">
-        이 안내는 참고용입니다. 몸이 불편하시면 병원에 가보십시오.
+        이 안내는 참고용입니다.<br /> 몸이 불편하시면 병원에 가보십시오.
       </p>
     </section>
 
@@ -86,7 +86,7 @@
       <p class="detail-question">어디가 더 가까우세요?</p>
       <div id="detail-grid" class="detail-grid" role="group" aria-label="세부 고르기"></div>
       <p class="app-disclaimer">
-        이 안내는 참고용입니다. 몸이 불편하시면 병원에 가보십시오.
+        이 안내는 참고용입니다.<br /> 몸이 불편하시면 병원에 가보십시오.
       </p>
     </section>
 
@@ -139,7 +139,7 @@
       </button>
 
       <p class="app-disclaimer">
-        이 안내는 참고용입니다.<br />몸이 불편하시면 병원에 가보십시오.
+        이 안내는 참고용입니다.<br /> 몸이 불편하시면 병원에 가보십시오.
       </p>
     </section>
 
@@ -198,7 +198,7 @@
       </div>
 
       <p class="app-disclaimer">
-        이 안내는 참고용입니다. 몸이 불편하시면 병원에 가보십시오.
+        이 안내는 참고용입니다.<br /> 몸이 불편하시면 병원에 가보십시오.
       </p>
     </section>
 
@@ -241,7 +241,7 @@
       <div id="records-by-date" class="records-panel records-panel-date" role="tabpanel" hidden></div>
 
       <p class="app-disclaimer">
-        이 안내는 참고용입니다. 몸이 불편하시면 병원에 가보십시오.
+        이 안내는 참고용입니다.<br /> 몸이 불편하시면 병원에 가보십시오.
       </p>
     </section>
 
@@ -250,7 +250,17 @@
       <p id="clinic-intro" class="clinic-intro">
         이 화면을 의사 선생님께 보여드리세요
       </p>
-      <p class="clinic-period">최근 3개월</p>
+
+      <div id="clinic-summary" class="clinic-summary" hidden></div>
+
+      <div id="clinic-sort" class="clinic-sort no-print" hidden role="group" aria-label="정렬">
+        <button type="button" id="clinic-sort-recent" class="clinic-sort-btn">
+          최신순
+        </button>
+        <button type="button" id="clinic-sort-frequency" class="clinic-sort-btn is-active">
+          빈도순
+        </button>
+      </div>
 
       <p id="clinic-empty" class="clinic-empty" hidden>
         최근 3개월 안에 적어 둔 기록이 없습니다.

@@ -885,11 +885,48 @@ body {
   color: var(--ink);
 }
 
-.clinic-period {
-  margin: 0;
+.clinic-summary {
+  padding: 18px 16px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: #eef2f7;
+}
+
+.clinic-summary-line {
+  margin: 0 0 10px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.clinic-summary-line:last-child {
+  margin-bottom: 0;
+}
+
+.clinic-sort {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.clinic-sort-btn {
+  min-height: 56px;
+  padding: 12px 14px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
   font-size: 22px;
   font-weight: 700;
-  text-align: center;
+  cursor: pointer;
+}
+
+.clinic-sort-btn.is-active {
+  border-color: var(--point);
+  background: var(--point);
+  color: #fff;
 }
 
 .clinic-empty {
@@ -1014,8 +1051,13 @@ body.clinic-active .app-copyright-footer {
     font-size: 18pt;
   }
 
-  body.clinic-active .clinic-period {
-    font-size: 12pt;
+  body.clinic-active .clinic-summary {
+    border: 2px solid #000;
+    background: #fff;
+  }
+
+  body.clinic-active .clinic-summary-line {
+    font-size: 14pt;
   }
 
   body.clinic-active .clinic-group {
@@ -1028,7 +1070,7 @@ body.clinic-active .app-copyright-footer {
     font-size: 16pt;
   }
 
-  body.clinic-active .clinic-group-summary {
+  body.clinic-active .clinic-detail-title {
     font-size: 12pt;
   }
 
