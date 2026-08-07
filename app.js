@@ -422,7 +422,7 @@ function shuffle(list) {
 const VOICE_LABELS = {
   idle: "한번만 눌러서<br />말씀하세요",
   listening: "말씀하세요.<br />듣고 있습니다",
-  done: "다 말씀하셨으면<br />여기를 누르세요",
+  done: "수정하시려면<br />다시 눌러주세요",
 };
 
 function updateVoiceButton(mode) {
