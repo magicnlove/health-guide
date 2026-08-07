@@ -18,13 +18,16 @@
   box-sizing: border-box;
 }
 
-html,
-body {
+html {
   margin: 0;
   min-height: 100%;
 }
 
 body {
+  margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   font-family: var(--font);
   font-size: 20px;
   color: var(--ink);
@@ -34,9 +37,11 @@ body {
 
 .app {
   position: relative;
+  flex: 1 0 auto;
+  width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  padding: 64px 20px 148px;
+  padding: 64px 20px 24px;
 }
 
 .app-brand {
@@ -760,13 +765,14 @@ body {
   line-height: 1.5;
 }
 
-body.clinic-active .app-bottom {
+body.clinic-active .app-copyright-footer {
   display: none;
 }
 
 @media print {
-  body.clinic-active .app-bottom,
+  body.clinic-active .app-copyright-footer,
   body.clinic-active .app-brand,
+  body.clinic-active .app-disclaimer,
   body.clinic-active .no-print {
     display: none !important;
   }
@@ -829,33 +835,23 @@ body.clinic-active .app-bottom {
   }
 }
 
-/* ── 하단 안내·푸터 ─────────────────────────────── */
-
-.app-bottom {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--bg);
-  border-top: 1px solid var(--border);
-  padding: 12px 16px 14px;
-  z-index: 10;
-}
+/* ── 안내 문구·저작권 푸터 ───────────────────────── */
 
 .app-disclaimer {
-  margin: 0;
+  margin: 8px 0 0;
   color: var(--ink);
   font-size: 16px;
   text-align: center;
   line-height: 1.4;
 }
 
-.app-bottom-rule {
+.app-copyright-footer {
+  flex-shrink: 0;
   width: 100%;
-  max-width: 480px;
-  margin: 10px auto;
-  border: none;
+  margin-top: auto;
+  padding: 24px 16px 16px;
   border-top: 1px solid var(--border);
+  background: var(--bg);
 }
 
 .app-copyright {
