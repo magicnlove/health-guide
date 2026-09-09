@@ -1,4 +1,6 @@
 const STORAGE_KEY = "healthguide.records.v1";
+const FAMILY_STORAGE_KEY = "healthguide.familyPhones.v1";
+const FAMILY_MAX = 2;
 
 const GROUP_LABELS = {
   pain: "아프다",
@@ -100,6 +102,7 @@ const state = {
 };
 
 const screenHome = document.getElementById("screen-home");
+const screenFamily = document.getElementById("screen-family");
 const screenDetail = document.getElementById("screen-detail");
 const screenSpeak = document.getElementById("screen-speak");
 const screenResult = document.getElementById("screen-result");
@@ -110,6 +113,20 @@ const btnLogoHome = document.getElementById("btn-logo-home");
 const detailTitle = document.getElementById("detail-title");
 const detailGrid = document.getElementById("detail-grid");
 const speakGroupLabel = document.getElementById("speak-group-label");
+const homeFamily = document.getElementById("home-family");
+const clinicFamily = document.getElementById("clinic-family");
+const clinicFamilyCalls = document.getElementById("clinic-family-calls");
+const familyShareCalls = document.getElementById("family-share-calls");
+const familySaveStatus = document.getElementById("family-save-status");
+const btnFamilySave = document.getElementById("btn-family-save");
+const familyNameInputs = [
+  document.getElementById("family-name-0"),
+  document.getElementById("family-name-1"),
+];
+const familyPhoneInputs = [
+  document.getElementById("family-phone-0"),
+  document.getElementById("family-phone-1"),
+];
 const btnVoice = document.getElementById("btn-voice");
 const speakText = document.getElementById("speak-text");
 const btnSpeakNext = document.getElementById("btn-speak-next");
@@ -161,6 +178,7 @@ let pendingFamilyShareText = "";
 
 function showScreenOnly(name) {
   screenHome.hidden = name !== "home";
+  screenFamily.hidden = name !== "family";
   screenDetail.hidden = name !== "detail";
   screenSpeak.hidden = name !== "speak";
   screenResult.hidden = name !== "result";
@@ -171,6 +189,9 @@ function showScreenOnly(name) {
   state.currentScreen = name;
   if (name !== "records") {
     closeFamilyShareConfirm();
+  }
+  if (name === "home") {
+    renderHomeFamily();
   }
   window.scrollTo(0, 0);
 }
@@ -248,6 +269,8 @@ function restoreScreen(screen) {
     renderRecordsScreen();
   } else if (screen === "clinic") {
     renderClinicScreen();
+  } else if (screen === "family") {
+    fillFamilyForm();
   } else {
     screen = "home";
   }
@@ -300,6 +323,128 @@ function loadRecords() {
 
 function saveRecords(records) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+
+function normalizeFamilyPhone(phone) {
+  return String(phone || "").replace(/[^\d+]/g, "");
+}
+
+function loadFamilyContacts() {
+  try {
+    const raw = localStorage.getItem(FAMILY_STORAGE_KEY);
+    if (!raw) return [];
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data)) return [];
+    return data
+      .map((item) => ({
+        name: String(item && item.name ? item.name : "").trim(),
+        phone: String(item && item.phone ? item.phone : "").trim(),
+      }))
+      .filter((item) => item.name && normalizeFamilyPhone(item.phone))
+      .slice(0, FAMILY_MAX);
+  } catch (_) {
+    return [];
+  }
+}
+
+function saveFamilyContacts(contacts) {
+  localStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(contacts.slice(0, FAMILY_MAX)));
+}
+
+function createFamilyCallLink(contact) {
+  const a = document.createElement("a");
+  a.className = "family-call-btn";
+  a.href = `tel:${normalizeFamilyPhone(contact.phone)}`;
+  a.textContent = `📞 ${contact.name}`;
+  return a;
+}
+
+function renderFamilyCallButtons(container) {
+  container.innerHTML = "";
+  const contacts = loadFamilyContacts();
+  contacts.forEach((contact) => {
+    container.appendChild(createFamilyCallLink(contact));
+  });
+  return contacts.length;
+}
+
+function renderHomeFamily() {
+  homeFamily.innerHTML = "";
+  const contacts = loadFamilyContacts();
+
+  if (contacts.length === 0) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "home-family-register";
+    btn.textContent = "가족 전화 등록하기";
+    btn.addEventListener("click", openFamilyEdit);
+    homeFamily.appendChild(btn);
+    return;
+  }
+
+  const list = document.createElement("div");
+  list.className = "family-call-list";
+  contacts.forEach((contact) => {
+    list.appendChild(createFamilyCallLink(contact));
+  });
+  homeFamily.appendChild(list);
+
+  const edit = document.createElement("button");
+  edit.type = "button";
+  edit.className = "home-family-edit";
+  edit.textContent = "전화번호 바꾸기";
+  edit.addEventListener("click", openFamilyEdit);
+  homeFamily.appendChild(edit);
+}
+
+function fillFamilyForm() {
+  const contacts = loadFamilyContacts();
+  for (let i = 0; i < FAMILY_MAX; i += 1) {
+    const contact = contacts[i];
+    familyNameInputs[i].value = contact ? contact.name : "";
+    familyPhoneInputs[i].value = contact ? contact.phone : "";
+  }
+  familySaveStatus.hidden = true;
+  familySaveStatus.textContent = "";
+}
+
+function openFamilyEdit() {
+  fillFamilyForm();
+  navigateTo("family");
+}
+
+function saveFamilyForm() {
+  const contacts = [];
+  for (let i = 0; i < FAMILY_MAX; i += 1) {
+    const name = familyNameInputs[i].value.trim();
+    const phone = familyPhoneInputs[i].value.trim();
+    if (!name && !phone) continue;
+    if (!name || !normalizeFamilyPhone(phone)) {
+      familySaveStatus.textContent =
+        "이름과 전화번호를 함께 적어 주십시오.";
+      familySaveStatus.hidden = false;
+      return;
+    }
+    contacts.push({ name, phone });
+  }
+
+  saveFamilyContacts(contacts);
+  goHome();
+}
+
+function renderClinicFamily() {
+  const count = renderFamilyCallButtons(clinicFamilyCalls);
+  clinicFamily.hidden = count === 0;
+}
+
+function hideFamilyShareCalls() {
+  familyShareCalls.hidden = true;
+  familyShareCalls.innerHTML = "";
+}
+
+function showFamilyShareCalls() {
+  const count = renderFamilyCallButtons(familyShareCalls);
+  familyShareCalls.hidden = count === 0;
 }
 
 function parseDateStr(dateStr) {
@@ -768,11 +913,13 @@ function updateFamilyShareButtonLabel() {
 function hideFamilyShareStatus() {
   familyShareStatus.hidden = true;
   familyShareStatus.textContent = "";
+  hideFamilyShareCalls();
 }
 
 function showFamilyShareStatus(message) {
   familyShareStatus.textContent = message;
   familyShareStatus.hidden = false;
+  showFamilyShareCalls();
 }
 
 function closeFamilyShareConfirm() {
@@ -820,6 +967,7 @@ async function sendFamilyShare() {
         title: "건강 길잡이 기록",
         text,
       });
+      showFamilyShareStatus("보냈습니다");
     } catch (err) {
       if (err && err.name === "AbortError") return;
       try {
@@ -829,6 +977,7 @@ async function sendFamilyShare() {
         );
       } catch (_copyErr) {
         showFamilyShareStatus("보내지 못했습니다. 다시 눌러 주십시오.");
+        hideFamilyShareCalls();
       }
     }
     return;
@@ -841,6 +990,7 @@ async function sendFamilyShare() {
     );
   } catch (_err) {
     showFamilyShareStatus("복사하지 못했습니다. 다시 눌러 주십시오.");
+    hideFamilyShareCalls();
   }
 }
 
@@ -900,39 +1050,41 @@ function renderClinicScreen() {
   updateClinicSortButtons();
   renderClinicSummary(summary);
 
-  if (totalCount === 0) return;
+  if (totalCount > 0) {
+    tree.forEach((node) => {
+      const section = document.createElement("section");
+      section.className = "clinic-group";
 
-  tree.forEach((node) => {
-    const section = document.createElement("section");
-    section.className = "clinic-group";
+      const heading = document.createElement("h2");
+      heading.className = "clinic-group-title";
+      heading.textContent = `${node.groupLabel} — 최근 3개월 ${node.count}번`;
+      section.appendChild(heading);
 
-    const heading = document.createElement("h2");
-    heading.className = "clinic-group-title";
-    heading.textContent = `${node.groupLabel} — 최근 3개월 ${node.count}번`;
-    section.appendChild(heading);
+      node.details.forEach((detail) => {
+        const detailBlock = document.createElement("div");
+        detailBlock.className = "clinic-detail-block";
 
-    node.details.forEach((detail) => {
-      const detailBlock = document.createElement("div");
-      detailBlock.className = "clinic-detail-block";
+        const detailTitle = document.createElement("p");
+        detailTitle.className = "clinic-detail-title";
+        detailTitle.textContent = `${detail.detailLabel} ${detail.count}번`;
+        detailBlock.appendChild(detailTitle);
 
-      const detailTitle = document.createElement("p");
-      detailTitle.className = "clinic-detail-title";
-      detailTitle.textContent = `${detail.detailLabel} ${detail.count}번`;
-      detailBlock.appendChild(detailTitle);
-
-      const list = document.createElement("ul");
-      list.className = "clinic-record-list";
-      detail.recordsAsc.forEach((record) => {
-        const li = document.createElement("li");
-        li.textContent = `${formatDateShort(record.date)} — ${record.text}`;
-        list.appendChild(li);
+        const list = document.createElement("ul");
+        list.className = "clinic-record-list";
+        detail.recordsAsc.forEach((record) => {
+          const li = document.createElement("li");
+          li.textContent = `${formatDateShort(record.date)} — ${record.text}`;
+          list.appendChild(li);
+        });
+        detailBlock.appendChild(list);
+        section.appendChild(detailBlock);
       });
-      detailBlock.appendChild(list);
-      section.appendChild(detailBlock);
-    });
 
-    clinicContent.appendChild(section);
-  });
+      clinicContent.appendChild(section);
+    });
+  }
+
+  renderClinicFamily();
 }
 
 function shuffle(list) {
@@ -1529,6 +1681,8 @@ familyShareConfirm.addEventListener("click", (event) => {
     closeFamilyShareConfirm();
   }
 });
+
+btnFamilySave.addEventListener("click", saveFamilyForm);
 
 history.replaceState({ screen: "home" }, "", "");
 state.navDepth = 0;

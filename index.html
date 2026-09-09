@@ -75,6 +75,71 @@
         내 기록 보기
       </button>
 
+      <div id="home-family" class="home-family"></div>
+
+      <p class="app-disclaimer">
+        이 안내는 참고용입니다.<br /> 몸이 불편하시면 병원에 가보십시오.
+      </p>
+    </section>
+
+    <!-- 1a. 가족 전화 등록 -->
+    <section id="screen-family" class="screen" hidden aria-labelledby="family-title">
+      <h2 id="family-title" class="speak-group-label">가족 전화</h2>
+      <p class="family-edit-lead">
+        이름과 번호를 적어 두시면, 필요할 때 바로 걸 수 있습니다.<br />
+        이 기기에만 저장되며 밖으로 나가지 않습니다.
+      </p>
+
+      <div class="family-edit-list">
+        <div class="family-edit-slot">
+          <p class="family-edit-slot-label">첫 번째</p>
+          <label class="text-input-label" for="family-name-0">이름</label>
+          <input
+            id="family-name-0"
+            class="family-input"
+            type="text"
+            maxlength="20"
+            autocomplete="name"
+            placeholder="예: 딸 김영희"
+          />
+          <label class="text-input-label" for="family-phone-0">전화번호</label>
+          <input
+            id="family-phone-0"
+            class="family-input"
+            type="tel"
+            inputmode="tel"
+            maxlength="20"
+            autocomplete="tel"
+            placeholder="예: 010-1234-5678"
+          />
+        </div>
+        <div class="family-edit-slot">
+          <p class="family-edit-slot-label">두 번째</p>
+          <label class="text-input-label" for="family-name-1">이름</label>
+          <input
+            id="family-name-1"
+            class="family-input"
+            type="text"
+            maxlength="20"
+            autocomplete="off"
+            placeholder="예: 아들 김철수"
+          />
+          <label class="text-input-label" for="family-phone-1">전화번호</label>
+          <input
+            id="family-phone-1"
+            class="family-input"
+            type="tel"
+            inputmode="tel"
+            maxlength="20"
+            autocomplete="off"
+            placeholder="예: 010-9876-5432"
+          />
+        </div>
+      </div>
+
+      <button type="button" id="btn-family-save" class="full-btn">저장하기</button>
+      <p id="family-save-status" class="family-save-status" hidden></p>
+
       <p class="app-disclaimer">
         이 안내는 참고용입니다.<br /> 몸이 불편하시면 병원에 가보십시오.
       </p>
@@ -226,6 +291,7 @@
           가족에게 보내기
         </button>
         <p id="family-share-status" class="family-share-status" hidden></p>
+        <div id="family-share-calls" class="family-call-list" hidden></div>
       </div>
 
       <h2 id="records-title" class="records-title">내 기록</h2>
@@ -287,6 +353,13 @@
       </p>
 
       <div id="clinic-content" class="clinic-content"></div>
+
+      <div id="clinic-family" class="clinic-family no-print" hidden>
+        <p class="clinic-family-note">
+          기억나지 않는 것이 있으면 가족에게 물어보십시오
+        </p>
+        <div id="clinic-family-calls" class="family-call-list"></div>
+      </div>
     </section>
   </main>
 
