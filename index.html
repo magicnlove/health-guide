@@ -145,9 +145,20 @@
 
     <!-- 3. 결과 -->
     <section id="screen-result" class="screen" hidden>
-      <div id="energy-alert" class="energy-alert" hidden>
-        갑자기 한쪽 팔다리에 힘이 빠지거나, 말이 어눌해지거나, 입이 돌아가면
-        <strong>곧바로 119</strong>에 전화하십시오.
+      <div id="energy-alert" class="emergency-alert" hidden>
+        <p class="emergency-alert-text">
+          갑자기 한쪽 팔다리에 힘이 빠지거나, 말이 어눌해지거나, 입이 돌아가면
+          <strong>곧바로 119</strong>에 전화하십시오.
+        </p>
+        <a href="tel:119" class="call-119-btn">📞 119 전화하기</a>
+      </div>
+
+      <div id="breath-alert" class="emergency-alert" hidden>
+        <p class="emergency-alert-text">
+          가만히 있어도 숨이 차거나, 입술이 파래지거나,
+          말을 잇기 어려우실 때는 곧바로 119에 전화하십시오.
+        </p>
+        <a href="tel:119" class="call-119-btn">📞 119 전화하기</a>
       </div>
 
       <p id="result-path" class="result-path"></p>

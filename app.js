@@ -115,6 +115,7 @@ const speakText = document.getElementById("speak-text");
 const btnSpeakNext = document.getElementById("btn-speak-next");
 
 const energyAlert = document.getElementById("energy-alert");
+const breathAlert = document.getElementById("breath-alert");
 const resultPath = document.getElementById("result-path");
 const resultTextView = document.getElementById("result-text-view");
 const resultTextEdit = document.getElementById("result-text-edit");
@@ -1249,6 +1250,7 @@ function renderResultFromState(options = {}) {
   updateDeleteCurrentButton();
 
   energyAlert.hidden = state.group !== "energy";
+  breathAlert.hidden = state.group !== "breath";
 
   const recordOnly = RECORD_ONLY_GROUPS.has(state.group);
   recordOnlyMsg.hidden = !recordOnly;
