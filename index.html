@@ -282,11 +282,26 @@
 
       <div id="clinic-content" class="clinic-content"></div>
 
-      <p class="clinic-footer">
-        이 화면을 사진으로 찍어 자녀분께 보내셔도 됩니다
-      </p>
+      <div id="clinic-share" class="clinic-share no-print" hidden>
+        <p class="clinic-share-note">이 화면을 가족에게 보낼 수 있습니다.</p>
+        <button type="button" id="btn-clinic-share" class="clinic-share-btn">
+          가족에게 보내기
+        </button>
+        <p id="clinic-share-status" class="clinic-share-status" hidden></p>
+      </div>
     </section>
   </main>
+
+  <div id="clinic-share-confirm" class="clinic-share-confirm" hidden>
+    <div class="clinic-share-confirm-panel" role="dialog" aria-labelledby="clinic-share-confirm-title">
+      <p id="clinic-share-confirm-title" class="clinic-share-confirm-title">이 내용을 보냅니다</p>
+      <pre id="clinic-share-preview" class="clinic-share-preview"></pre>
+      <div class="clinic-share-confirm-actions">
+        <button type="button" id="btn-clinic-share-send" class="clinic-share-send">보내기</button>
+        <button type="button" id="btn-clinic-share-cancel" class="clinic-share-cancel">그만두기</button>
+      </div>
+    </div>
+  </div>
 
   <footer class="app-copyright-footer">
     <p class="app-copyright">

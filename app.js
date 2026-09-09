@@ -149,6 +149,17 @@ const clinicSummary = document.getElementById("clinic-summary");
 const clinicSort = document.getElementById("clinic-sort");
 const clinicSortRecent = document.getElementById("clinic-sort-recent");
 const clinicSortFrequency = document.getElementById("clinic-sort-frequency");
+const clinicShare = document.getElementById("clinic-share");
+const btnClinicShare = document.getElementById("btn-clinic-share");
+const clinicShareStatus = document.getElementById("clinic-share-status");
+const clinicShareConfirm = document.getElementById("clinic-share-confirm");
+const clinicSharePreview = document.getElementById("clinic-share-preview");
+const btnClinicShareSend = document.getElementById("btn-clinic-share-send");
+const btnClinicShareCancel = document.getElementById("btn-clinic-share-cancel");
+
+const canShareClinic =
+  typeof navigator.share === "function";
+let pendingClinicShareText = "";
 
 function showScreenOnly(name) {
   screenHome.hidden = name !== "home";
@@ -160,6 +171,9 @@ function showScreenOnly(name) {
   document.body.classList.toggle("clinic-active", name === "clinic");
   btnTopBack.hidden = name === "home";
   state.currentScreen = name;
+  if (name !== "clinic") {
+    closeClinicShareConfirm();
+  }
   window.scrollTo(0, 0);
 }
 
@@ -710,6 +724,124 @@ function updateClinicSortButtons() {
   clinicSortFrequency.classList.toggle("is-active", !isRecent);
 }
 
+function buildClinicShareText(summary, tree) {
+  const lines = ["건강 길잡이에 적어둔 내용입니다", ""];
+
+  if (summary) {
+    lines.push(`최근 3개월 · 모두 ${summary.totalCount}번`);
+    lines.push(`가장 잦음: ${summary.topGroupLabel} (${summary.topGroupCount}번)`);
+    lines.push(
+      `가장 최근: ${summary.latestDateLabel} · ${summary.latestDetailLabel}`
+    );
+    lines.push(`처음 적은 날: ${summary.firstDateLabel}`);
+    lines.push("");
+  }
+
+  tree.forEach((node) => {
+    lines.push(`${node.groupLabel} — 최근 3개월 ${node.count}번`);
+    node.details.forEach((detail) => {
+      lines.push(`${detail.detailLabel} ${detail.count}번`);
+      detail.recordsAsc.forEach((record) => {
+        lines.push(
+          `${formatDateShort(record.date)} — ${record.text}`
+        );
+      });
+      lines.push("");
+    });
+  });
+
+  while (lines.length && lines[lines.length - 1] === "") {
+    lines.pop();
+  }
+
+  return lines.join("\n");
+}
+
+function updateClinicShareButtonLabel() {
+  btnClinicShare.textContent = canShareClinic
+    ? "가족에게 보내기"
+    : "내용 복사하기";
+}
+
+function hideClinicShareStatus() {
+  clinicShareStatus.hidden = true;
+  clinicShareStatus.textContent = "";
+}
+
+function showClinicShareStatus(message) {
+  clinicShareStatus.textContent = message;
+  clinicShareStatus.hidden = false;
+}
+
+function closeClinicShareConfirm() {
+  clinicShareConfirm.hidden = true;
+  pendingClinicShareText = "";
+  clinicSharePreview.textContent = "";
+}
+
+function openClinicShareConfirm(text) {
+  pendingClinicShareText = text;
+  clinicSharePreview.textContent = text;
+  hideClinicShareStatus();
+  clinicShareConfirm.hidden = false;
+}
+
+async function copyClinicShareText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const area = document.createElement("textarea");
+  area.value = text;
+  area.setAttribute("readonly", "");
+  area.style.position = "fixed";
+  area.style.left = "-9999px";
+  document.body.appendChild(area);
+  area.select();
+  const ok = document.execCommand("copy");
+  document.body.removeChild(area);
+  if (!ok) {
+    throw new Error("copy failed");
+  }
+}
+
+async function sendClinicShare() {
+  const text = pendingClinicShareText;
+  if (!text) return;
+
+  closeClinicShareConfirm();
+
+  if (canShareClinic) {
+    try {
+      await navigator.share({
+        title: "건강 길잡이 기록",
+        text,
+      });
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+      try {
+        await copyClinicShareText(text);
+        showClinicShareStatus(
+          "복사되었습니다. 카카오톡이나 문자에 붙여넣으십시오"
+        );
+      } catch (_copyErr) {
+        showClinicShareStatus("보내지 못했습니다. 다시 눌러 주십시오.");
+      }
+    }
+    return;
+  }
+
+  try {
+    await copyClinicShareText(text);
+    showClinicShareStatus(
+      "복사되었습니다. 카카오톡이나 문자에 붙여넣으십시오"
+    );
+  } catch (_err) {
+    showClinicShareStatus("복사하지 못했습니다. 다시 눌러 주십시오.");
+  }
+}
+
 function renderClinicSummary(summary) {
   clinicSummary.innerHTML = "";
   if (!summary) {
@@ -746,8 +878,14 @@ function renderClinicScreen() {
   clinicSort.hidden = totalCount === 0;
   updateClinicSortButtons();
   renderClinicSummary(summary);
+  updateClinicShareButtonLabel();
+  hideClinicShareStatus();
+  closeClinicShareConfirm();
 
+  clinicShare.hidden = totalCount === 0;
   if (totalCount === 0) return;
+
+  clinicShare.dataset.shareText = buildClinicShareText(summary, tree);
 
   tree.forEach((node) => {
     const section = document.createElement("section");
@@ -1359,6 +1497,24 @@ btnClinic.addEventListener("click", openClinic);
 clinicSortRecent.addEventListener("click", () => setClinicSort("recent"));
 clinicSortFrequency.addEventListener("click", () => setClinicSort("frequency"));
 
+btnClinicShare.addEventListener("click", () => {
+  const text = clinicShare.dataset.shareText || "";
+  if (!text) return;
+  openClinicShareConfirm(text);
+});
+btnClinicShareSend.addEventListener("click", () => {
+  sendClinicShare();
+});
+btnClinicShareCancel.addEventListener("click", () => {
+  closeClinicShareConfirm();
+});
+clinicShareConfirm.addEventListener("click", (event) => {
+  if (event.target === clinicShareConfirm) {
+    closeClinicShareConfirm();
+  }
+});
+
 history.replaceState({ screen: "home" }, "", "");
 state.navDepth = 0;
 showScreenOnly("home");
+updateClinicShareButtonLabel();

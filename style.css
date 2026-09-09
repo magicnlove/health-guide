@@ -1095,14 +1095,137 @@ body {
   margin-bottom: 0;
 }
 
-.clinic-footer {
+.clinic-share {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.clinic-share-note {
   margin: 0;
-  padding: 16px;
+  font-size: 20px;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--ink);
+}
+
+.clinic-share-btn {
+  min-height: 64px;
+  padding: 14px 16px;
   border: 2px solid var(--border);
   border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clinic-share-btn:active {
+  background: var(--card);
+}
+
+.clinic-share-status {
+  margin: 0;
+  padding: 12px 14px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
   font-size: 20px;
+  line-height: 1.45;
   text-align: center;
+}
+
+.clinic-share-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(26, 26, 26, 0.45);
+  box-sizing: border-box;
+}
+
+.clinic-share-confirm-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 480px;
+  max-height: min(85dvh, 720px);
+  padding: 18px 16px 16px;
+  border: 2px solid var(--border);
+  border-radius: 16px 16px 12px 12px;
+  background: var(--bg);
+  box-sizing: border-box;
+}
+
+.clinic-share-confirm-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--ink);
+}
+
+.clinic-share-preview {
+  margin: 0;
+  flex: 1 1 auto;
+  min-height: 120px;
+  max-height: 50dvh;
+  overflow: auto;
+  padding: 14px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 18px;
   line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.clinic-share-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.clinic-share-send,
+.clinic-share-cancel {
+  min-height: 64px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clinic-share-send {
+  border: 2px solid var(--point);
+  background: var(--point);
+  color: #fff;
+}
+
+.clinic-share-send:active {
+  background: var(--point-dark);
+  border-color: var(--point-dark);
+}
+
+.clinic-share-cancel {
+  border: 2px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.clinic-share-cancel:active {
+  background: var(--card);
 }
 
 body.clinic-active .app-copyright-footer {
@@ -1174,11 +1297,6 @@ body.clinic-active .app-copyright-footer {
     border: 1px solid #999;
     background: #fff;
     font-size: 13pt;
-  }
-
-  body.clinic-active .clinic-footer {
-    border: 1px solid #999;
-    font-size: 11pt;
   }
 }
 
