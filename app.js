@@ -1,6 +1,7 @@
 const STORAGE_KEY = "healthguide.records.v1";
 const FAMILY_STORAGE_KEY = "healthguide.familyPhones.v1";
 const FAMILY_MAX = 2;
+const MIGRATE_BREATH_DETAIL_KEY = "healthguide.migrate.breathDetail.v1";
 
 const GROUP_LABELS = {
   pain: "아프다",
@@ -26,7 +27,7 @@ const DETAIL_FILTER_GROUPS = new Set(["urine", "sleep"]);
 const DETAIL_OPTIONS = {
   pain: ["무릎", "허리", "어깨", "머리"],
   stomach: ["소화", "속쓰림", "변"],
-  breath: ["기침", "가래", "숨참"],
+  breath: ["기침", "가래", "숨이 참"],
   sleep: ["못 잔다", "새벽에 깬다"],
   energy: ["힘없다", "어지럽다", "깜빡한다"],
   eyeear: ["침침하다", "잘 안 들린다"],
@@ -336,6 +337,26 @@ function loadRecords() {
 
 function saveRecords(records) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+
+/** 예전 세부값 "숨참" → "숨이 참". 앱을 열 때 한 번만 실행한다. */
+function migrateBreathDetailOnce() {
+  if (localStorage.getItem(MIGRATE_BREATH_DETAIL_KEY) === "1") return;
+
+  const records = loadRecords();
+  let changed = false;
+  const next = records.map((record) => {
+    if (record && record.detail === "숨참") {
+      changed = true;
+      return Object.assign({}, record, { detail: "숨이 참" });
+    }
+    return record;
+  });
+
+  if (changed) {
+    saveRecords(next);
+  }
+  localStorage.setItem(MIGRATE_BREATH_DETAIL_KEY, "1");
 }
 
 function normalizeFamilyPhone(phone) {
@@ -1789,5 +1810,6 @@ btnFamilySave.addEventListener("click", saveFamilyForm);
 
 history.replaceState({ screen: "home" }, "", "");
 state.navDepth = 0;
+migrateBreathDetailOnce();
 showScreenOnly("home");
 updateFamilyShareButtonLabel();
