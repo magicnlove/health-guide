@@ -287,9 +287,9 @@ body {
   width: 100%;
   min-height: 56px;
   padding: 12px 14px;
-  border: 2px solid var(--border);
+  border: 2px solid #9aa3ad;
   border-radius: 12px;
-  background: var(--bg);
+  background: #e8ecef;
   color: var(--ink);
   font: inherit;
   font-size: 22px;
@@ -298,7 +298,7 @@ body {
 }
 
 .home-family-register:active {
-  background: var(--card);
+  background: #dce1e6;
 }
 
 .home-family-edit {
