@@ -601,6 +601,40 @@ body {
   line-height: 1.45;
 }
 
+.tea-how {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.tea-how-btn {
+  min-height: 56px;
+  padding: 12px 14px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tea-how-btn:active {
+  background: var(--card);
+}
+
+.tea-how-body {
+  margin: 0;
+  padding: 12px 14px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 20px;
+  line-height: 1.5;
+}
+
 .card-source {
   margin: 10px 0 0;
   font-size: 16px;

@@ -1138,6 +1138,32 @@ function renderTeaCards() {
     note.textContent = tea.note;
     card.appendChild(note);
 
+    if (tea.how) {
+      const howBlock = document.createElement("div");
+      howBlock.className = "tea-how";
+
+      const howBody = document.createElement("p");
+      howBody.className = "tea-how-body";
+      howBody.textContent = tea.how;
+      howBody.hidden = true;
+
+      const howBtn = document.createElement("button");
+      howBtn.type = "button";
+      howBtn.className = "tea-how-btn";
+      howBtn.textContent = "만드는 법 보기";
+      howBtn.setAttribute("aria-expanded", "false");
+      howBtn.addEventListener("click", () => {
+        const open = howBody.hidden;
+        howBody.hidden = !open;
+        howBtn.textContent = open ? "접기" : "만드는 법 보기";
+        howBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+
+      howBlock.appendChild(howBtn);
+      howBlock.appendChild(howBody);
+      card.appendChild(howBlock);
+    }
+
     if (tea.caution) {
       const caution = document.createElement("p");
       caution.className = "tea-caution";
@@ -1163,8 +1189,9 @@ function renderTea(group, options = {}) {
   }
 
   if (reshuffle || state.orderedTeas.length === 0) {
+    // 앞쪽(익숙한 차)을 우선 보여 준다. 임의 섞지 않는다.
     const ordered = orderItemsByDetail(teas, state.detail);
-    state.orderedTeas = ordered.showAll ? shuffle(ordered.ordered) : ordered.ordered;
+    state.orderedTeas = ordered.ordered;
     state.teaExpanded = false;
   }
   renderTeaCards();
