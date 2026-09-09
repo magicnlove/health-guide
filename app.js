@@ -149,17 +149,15 @@ const clinicSummary = document.getElementById("clinic-summary");
 const clinicSort = document.getElementById("clinic-sort");
 const clinicSortRecent = document.getElementById("clinic-sort-recent");
 const clinicSortFrequency = document.getElementById("clinic-sort-frequency");
-const clinicShare = document.getElementById("clinic-share");
-const btnClinicShare = document.getElementById("btn-clinic-share");
-const clinicShareStatus = document.getElementById("clinic-share-status");
-const clinicShareConfirm = document.getElementById("clinic-share-confirm");
-const clinicSharePreview = document.getElementById("clinic-share-preview");
-const btnClinicShareSend = document.getElementById("btn-clinic-share-send");
-const btnClinicShareCancel = document.getElementById("btn-clinic-share-cancel");
+const btnFamilyShare = document.getElementById("btn-family-share");
+const familyShareStatus = document.getElementById("family-share-status");
+const familyShareConfirm = document.getElementById("family-share-confirm");
+const familySharePreview = document.getElementById("family-share-preview");
+const btnFamilyShareSend = document.getElementById("btn-family-share-send");
+const btnFamilyShareCancel = document.getElementById("btn-family-share-cancel");
 
-const canShareClinic =
-  typeof navigator.share === "function";
-let pendingClinicShareText = "";
+const canShareFamily = typeof navigator.share === "function";
+let pendingFamilyShareText = "";
 
 function showScreenOnly(name) {
   screenHome.hidden = name !== "home";
@@ -171,8 +169,8 @@ function showScreenOnly(name) {
   document.body.classList.toggle("clinic-active", name === "clinic");
   btnTopBack.hidden = name === "home";
   state.currentScreen = name;
-  if (name !== "clinic") {
-    closeClinicShareConfirm();
+  if (name !== "records") {
+    closeFamilyShareConfirm();
   }
   window.scrollTo(0, 0);
 }
@@ -686,11 +684,13 @@ function renderRecordsScreen() {
   if (!hasRecords) {
     recordsByGroup.innerHTML = "";
     recordsByDate.innerHTML = "";
+    prepareFamilyShare();
     return;
   }
 
   renderRecordsByGroup(records);
   renderRecordsByDate(records);
+  prepareFamilyShare();
 }
 
 function deleteRecord(id) {
@@ -724,30 +724,32 @@ function updateClinicSortButtons() {
   clinicSortFrequency.classList.toggle("is-active", !isRecent);
 }
 
-function buildClinicShareText(summary, tree) {
+function buildFamilyShareText(summary, tree) {
   const lines = ["건강 길잡이에 적어둔 내용입니다", ""];
 
   if (summary) {
-    lines.push(`최근 3개월 · 모두 ${summary.totalCount}번`);
-    lines.push(`가장 잦음: ${summary.topGroupLabel} (${summary.topGroupCount}번)`);
+    lines.push(`최근 3개월에 적은 횟수: ${summary.totalCount}번`);
     lines.push(
-      `가장 최근: ${summary.latestDateLabel} · ${summary.latestDetailLabel}`
+      `가장 자주 적은 항목: ${summary.topGroupLabel} (${summary.topGroupCount}번)`
+    );
+    lines.push(
+      `가장 최근 기록: ${summary.latestDateLabel} · ${summary.latestDetailLabel}`
     );
     lines.push(`처음 적은 날: ${summary.firstDateLabel}`);
     lines.push("");
   }
 
   tree.forEach((node) => {
-    lines.push(`${node.groupLabel} — 최근 3개월 ${node.count}번`);
+    lines.push(node.groupLabel);
     node.details.forEach((detail) => {
-      lines.push(`${detail.detailLabel} ${detail.count}번`);
+      lines.push(`- ${detail.detailLabel}`);
       detail.recordsAsc.forEach((record) => {
         lines.push(
-          `${formatDateShort(record.date)} — ${record.text}`
+          `  ${formatDateShort(record.date)} — ${record.text}`
         );
       });
-      lines.push("");
     });
+    lines.push("");
   });
 
   while (lines.length && lines[lines.length - 1] === "") {
@@ -757,36 +759,36 @@ function buildClinicShareText(summary, tree) {
   return lines.join("\n");
 }
 
-function updateClinicShareButtonLabel() {
-  btnClinicShare.textContent = canShareClinic
+function updateFamilyShareButtonLabel() {
+  btnFamilyShare.textContent = canShareFamily
     ? "가족에게 보내기"
     : "내용 복사하기";
 }
 
-function hideClinicShareStatus() {
-  clinicShareStatus.hidden = true;
-  clinicShareStatus.textContent = "";
+function hideFamilyShareStatus() {
+  familyShareStatus.hidden = true;
+  familyShareStatus.textContent = "";
 }
 
-function showClinicShareStatus(message) {
-  clinicShareStatus.textContent = message;
-  clinicShareStatus.hidden = false;
+function showFamilyShareStatus(message) {
+  familyShareStatus.textContent = message;
+  familyShareStatus.hidden = false;
 }
 
-function closeClinicShareConfirm() {
-  clinicShareConfirm.hidden = true;
-  pendingClinicShareText = "";
-  clinicSharePreview.textContent = "";
+function closeFamilyShareConfirm() {
+  familyShareConfirm.hidden = true;
+  pendingFamilyShareText = "";
+  familySharePreview.textContent = "";
 }
 
-function openClinicShareConfirm(text) {
-  pendingClinicShareText = text;
-  clinicSharePreview.textContent = text;
-  hideClinicShareStatus();
-  clinicShareConfirm.hidden = false;
+function openFamilyShareConfirm(text) {
+  pendingFamilyShareText = text;
+  familySharePreview.textContent = text;
+  hideFamilyShareStatus();
+  familyShareConfirm.hidden = false;
 }
 
-async function copyClinicShareText(text) {
+async function copyFamilyShareText(text) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     await navigator.clipboard.writeText(text);
     return;
@@ -806,13 +808,13 @@ async function copyClinicShareText(text) {
   }
 }
 
-async function sendClinicShare() {
-  const text = pendingClinicShareText;
+async function sendFamilyShare() {
+  const text = pendingFamilyShareText;
   if (!text) return;
 
-  closeClinicShareConfirm();
+  closeFamilyShareConfirm();
 
-  if (canShareClinic) {
+  if (canShareFamily) {
     try {
       await navigator.share({
         title: "건강 길잡이 기록",
@@ -821,25 +823,44 @@ async function sendClinicShare() {
     } catch (err) {
       if (err && err.name === "AbortError") return;
       try {
-        await copyClinicShareText(text);
-        showClinicShareStatus(
+        await copyFamilyShareText(text);
+        showFamilyShareStatus(
           "복사되었습니다. 카카오톡이나 문자에 붙여넣으십시오"
         );
       } catch (_copyErr) {
-        showClinicShareStatus("보내지 못했습니다. 다시 눌러 주십시오.");
+        showFamilyShareStatus("보내지 못했습니다. 다시 눌러 주십시오.");
       }
     }
     return;
   }
 
   try {
-    await copyClinicShareText(text);
-    showClinicShareStatus(
+    await copyFamilyShareText(text);
+    showFamilyShareStatus(
       "복사되었습니다. 카카오톡이나 문자에 붙여넣으십시오"
     );
   } catch (_err) {
-    showClinicShareStatus("복사하지 못했습니다. 다시 눌러 주십시오.");
+    showFamilyShareStatus("복사하지 못했습니다. 다시 눌러 주십시오.");
   }
+}
+
+function prepareFamilyShare() {
+  updateFamilyShareButtonLabel();
+  hideFamilyShareStatus();
+
+  const { tree, recent, totalCount } = buildSymptomTree(
+    loadRecords(),
+    "frequency"
+  );
+  const summary = buildClinicSummary(recent, tree);
+
+  btnFamilyShare.hidden = totalCount === 0;
+  if (totalCount === 0) {
+    btnFamilyShare.dataset.shareText = "";
+    return;
+  }
+
+  btnFamilyShare.dataset.shareText = buildFamilyShareText(summary, tree);
 }
 
 function renderClinicSummary(summary) {
@@ -878,14 +899,8 @@ function renderClinicScreen() {
   clinicSort.hidden = totalCount === 0;
   updateClinicSortButtons();
   renderClinicSummary(summary);
-  updateClinicShareButtonLabel();
-  hideClinicShareStatus();
-  closeClinicShareConfirm();
 
-  clinicShare.hidden = totalCount === 0;
   if (totalCount === 0) return;
-
-  clinicShare.dataset.shareText = buildClinicShareText(summary, tree);
 
   tree.forEach((node) => {
     const section = document.createElement("section");
@@ -1497,24 +1512,25 @@ btnClinic.addEventListener("click", openClinic);
 clinicSortRecent.addEventListener("click", () => setClinicSort("recent"));
 clinicSortFrequency.addEventListener("click", () => setClinicSort("frequency"));
 
-btnClinicShare.addEventListener("click", () => {
-  const text = clinicShare.dataset.shareText || "";
+btnFamilyShare.addEventListener("click", () => {
+  prepareFamilyShare();
+  const text = btnFamilyShare.dataset.shareText || "";
   if (!text) return;
-  openClinicShareConfirm(text);
+  openFamilyShareConfirm(text);
 });
-btnClinicShareSend.addEventListener("click", () => {
-  sendClinicShare();
+btnFamilyShareSend.addEventListener("click", () => {
+  sendFamilyShare();
 });
-btnClinicShareCancel.addEventListener("click", () => {
-  closeClinicShareConfirm();
+btnFamilyShareCancel.addEventListener("click", () => {
+  closeFamilyShareConfirm();
 });
-clinicShareConfirm.addEventListener("click", (event) => {
-  if (event.target === clinicShareConfirm) {
-    closeClinicShareConfirm();
+familyShareConfirm.addEventListener("click", (event) => {
+  if (event.target === familyShareConfirm) {
+    closeFamilyShareConfirm();
   }
 });
 
 history.replaceState({ screen: "home" }, "", "");
 state.navDepth = 0;
 showScreenOnly("home");
-updateClinicShareButtonLabel();
+updateFamilyShareButtonLabel();

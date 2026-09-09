@@ -247,6 +247,36 @@ body {
   cursor: default;
 }
 
+.full-btn-secondary {
+  border-color: var(--border);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.full-btn-secondary:hover,
+.full-btn-secondary:active {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+.records-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.family-share-status {
+  margin: 0;
+  padding: 12px 14px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 20px;
+  line-height: 1.45;
+  text-align: center;
+}
+
 .secondary-btn {
   width: 100%;
   min-height: 72px;
@@ -1095,50 +1125,7 @@ body {
   margin-bottom: 0;
 }
 
-.clinic-share {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.clinic-share-note {
-  margin: 0;
-  font-size: 20px;
-  line-height: 1.45;
-  text-align: center;
-  color: var(--ink);
-}
-
-.clinic-share-btn {
-  min-height: 64px;
-  padding: 14px 16px;
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: inherit;
-  font-size: 24px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.clinic-share-btn:active {
-  background: var(--card);
-}
-
-.clinic-share-status {
-  margin: 0;
-  padding: 12px 14px;
-  border: 2px solid var(--border);
-  border-radius: 10px;
-  background: var(--card);
-  font-size: 20px;
-  line-height: 1.45;
-  text-align: center;
-}
-
-.clinic-share-confirm {
+.family-share-confirm {
   position: fixed;
   inset: 0;
   z-index: 40;
@@ -1150,7 +1137,7 @@ body {
   box-sizing: border-box;
 }
 
-.clinic-share-confirm-panel {
+.family-share-confirm-panel {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -1164,7 +1151,7 @@ body {
   box-sizing: border-box;
 }
 
-.clinic-share-confirm-title {
+.family-share-confirm-title {
   margin: 0;
   font-size: 26px;
   font-weight: 700;
@@ -1172,7 +1159,7 @@ body {
   color: var(--ink);
 }
 
-.clinic-share-preview {
+.family-share-preview {
   margin: 0;
   flex: 1 1 auto;
   min-height: 120px;
@@ -1190,14 +1177,14 @@ body {
   word-break: break-word;
 }
 
-.clinic-share-confirm-actions {
+.family-share-confirm-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-.clinic-share-send,
-.clinic-share-cancel {
+.family-share-send,
+.family-share-cancel {
   min-height: 64px;
   padding: 12px 14px;
   border-radius: 12px;
@@ -1207,24 +1194,24 @@ body {
   cursor: pointer;
 }
 
-.clinic-share-send {
+.family-share-send {
   border: 2px solid var(--point);
   background: var(--point);
   color: #fff;
 }
 
-.clinic-share-send:active {
+.family-share-send:active {
   background: var(--point-dark);
   border-color: var(--point-dark);
 }
 
-.clinic-share-cancel {
+.family-share-cancel {
   border: 2px solid var(--border);
   background: var(--bg);
   color: var(--ink);
 }
 
-.clinic-share-cancel:active {
+.family-share-cancel:active {
   background: var(--card);
 }
 
