@@ -12,7 +12,7 @@ const GROUP_LABELS = {
   unknown: "잘 모르겠다",
 };
 
-const RECORD_ONLY_GROUPS = new Set(["energy", "mood", "unknown"]);
+const RECORD_ONLY_GROUPS = new Set(["mood", "unknown"]);
 
 const DETAIL_ANY = "잘 모르겠어요";
 const DETAIL_ANY_LEGACY = "어디든";

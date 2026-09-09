@@ -42,8 +42,8 @@
 // 주의
 //   - 출처 없이 내용을 채우지 않는다. 출처 표기가 이 파일의 존재 이유다.
 //   - AI가 임의로 문장을 만들어 넣지 않는다.
-//   - energy(기운·어지럼), mood(기분), unknown(잘 모르겠다)은 비워둔다.
-//     이 항목들은 안내 없이 기록만 한다.
+//   - mood(기분), unknown(잘 모르겠다)은 비워둔다. 이 항목들은 안내 없이 기록만 한다.
+//   - energy(기운·어지럼)는 안전에 관한 내용만 넣는다. 원인·질환·영양소는 넣지 않는다.
 //   - 배열이 비어 있으면 화면에서 "집에서 해보실 것" 묶음 자체를 감춘다.
 
 const LIFESTYLE_DATA = {
@@ -296,7 +296,48 @@ const LIFESTYLE_DATA = {
     }
   ],
 
-  energy:  [],   // 기운·어지럼 — 비워둘 것
+  // 낙상·저혈압(기립)·어지럼 — 넘어짐·실내·수분 등 안전만 발췌
+  // (원인·질환명·영양소·운동·재활은 넣지 않음)
+  energy: [
+    {
+      // 출처 문서: 낙상 > 예방 및 대처 (cntnts_sn=1743)
+      // 저혈압 > 예방 (cntnts_sn=5259)
+      // https://health.kdca.go.kr/healthinfo/biz/health/gnrlzHealthInfo/gnrlzHealthInfo/gnrlzHealthInfoView.do?cntnts_sn=1743
+      // https://health.kdca.go.kr/healthinfo/biz/health/gnrlzHealthInfo/gnrlzHealthInfo/gnrlzHealthInfoView.do?cntnts_sn=5259
+      title: "일어날 때 천천히 움직이기",
+      body:  "누워 있거나 앉아 계시다가 일어나실 때는 천천히 움직이십시오.",
+      source: "질병관리청 국가건강정보포털",
+      checked: "2026-09",
+      tags: []
+    },
+    {
+      // 출처 문서: 저혈압 > 치료·예방 (cntnts_sn=5259)
+      // https://health.kdca.go.kr/healthinfo/biz/health/gnrlzHealthInfo/gnrlzHealthInfo/gnrlzHealthInfoView.do?cntnts_sn=5259
+      title: "어지러우면 앉아서 쉬기",
+      body:  "어지러우시면 걸음을 멈추고, 가까운 곳에 앉거나 기대어 쉬십시오.",
+      source: "질병관리청 국가건강정보포털",
+      checked: "2026-09",
+      tags: []
+    },
+    {
+      // 출처 문서: 낙상 > 예방 및 대처 > 집안 환경·야간 (cntnts_sn=1743)
+      // https://health.kdca.go.kr/healthinfo/biz/health/gnrlzHealthInfo/gnrlzHealthInfo/gnrlzHealthInfoView.do?cntnts_sn=1743
+      title: "밤에 길 밝혀 두기",
+      body:  "밤에 일어나실 때 바로 켤 수 있게, 잠자리 옆에 불을 두십시오.",
+      source: "질병관리청 국가건강정보포털",
+      checked: "2026-09",
+      tags: []
+    },
+    {
+      // 출처 문서: 저혈압 > 예방 (cntnts_sn=5259)
+      // https://health.kdca.go.kr/healthinfo/biz/health/gnrlzHealthInfo/gnrlzHealthInfo/gnrlzHealthInfoView.do?cntnts_sn=5259
+      title: "더울 때 물 마시기",
+      body:  "더우시거나 땀을 많이 흘리셨을 때는 물을 충분히 드십시오.",
+      source: "질병관리청 국가건강정보포털",
+      checked: "2026-09",
+      tags: []
+    }
+  ],
   mood:    [],   // 기분 — 비워둘 것
   unknown: []    // 잘 모르겠다 — 비워둘 것
 };
