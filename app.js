@@ -1200,31 +1200,8 @@ function renderHospital(group) {
   hospitalSection.hidden = false;
 }
 
-function countMoodInLast14Days() {
-  const records = loadRecords();
-  const now = new Date();
-  const cutoff = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() - 13
-  );
-  const cutoffStr = [
-    cutoff.getFullYear(),
-    String(cutoff.getMonth() + 1).padStart(2, "0"),
-    String(cutoff.getDate()).padStart(2, "0"),
-  ].join("-");
-
-  return records.filter(
-    (r) => r.group === "mood" && r.date >= cutoffStr
-  ).length;
-}
-
 function updateMoodExtra() {
-  if (state.group !== "mood") {
-    moodExtra.hidden = true;
-    return;
-  }
-  moodExtra.hidden = countMoodInLast14Days() < 3;
+  moodExtra.hidden = state.group !== "mood";
 }
 
 function renderResultFromState(options = {}) {
