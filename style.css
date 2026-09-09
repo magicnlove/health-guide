@@ -7,6 +7,7 @@
   --hospital: #b3261e;
   --card: #f2f4f7;
   --tea-card: #eaf3f0;
+  --food-card: #f3efe6;
   --border: #c9ced6;
   --footer-ink: #6b7280;
   --font: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
@@ -782,7 +783,8 @@ body {
 }
 
 .life-card,
-.tea-card {
+.tea-card,
+.food-card {
   padding: 16px;
   border: 2px solid var(--border);
   border-radius: 12px;
@@ -794,6 +796,10 @@ body {
 
 .tea-card {
   background: var(--tea-card);
+}
+
+.food-card {
+  background: var(--food-card);
 }
 
 .card-title {

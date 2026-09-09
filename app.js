@@ -19,6 +19,9 @@ const RECORD_ONLY_GROUPS = new Set(["mood", "unknown"]);
 const DETAIL_ANY = "잘 모르겠어요";
 const DETAIL_ANY_LEGACY = "어디든";
 
+/** 세부 선택과 반대되는 안내가 섞이면 안 되는 항목 — tags 로 걸러낸다 */
+const DETAIL_FILTER_GROUPS = new Set(["urine", "sleep"]);
+
 /** 그룹별 세부 선택 (최대 4개 + 항상 마지막에 잘 모르겠어요) */
 const DETAIL_OPTIONS = {
   pain: ["무릎", "허리", "어깨", "머리"],
@@ -90,6 +93,8 @@ const state = {
   lifestyleShowAll: false,
   orderedTeas: [],
   teaExpanded: false,
+  orderedFoods: [],
+  foodExpanded: false,
   recordsTab: "group",
   expandedGroups: new Set(),
   pendingDeleteId: null,
@@ -150,6 +155,12 @@ const btnMoreTea = document.getElementById("btn-more-tea");
 const teaDisclaimer = document.getElementById("tea-disclaimer");
 const teaMedicineWarning = document.getElementById("tea-medicine-warning");
 const teaCaffeine = document.getElementById("tea-caffeine");
+const foodSection = document.getElementById("food-section");
+const foodList = document.getElementById("food-list");
+const btnMoreFood = document.getElementById("btn-more-food");
+const foodDisclaimer = document.getElementById("food-disclaimer");
+const foodIllnessNote = document.getElementById("food-illness-note");
+const foodDivider = document.getElementById("food-divider");
 const hospitalSection = document.getElementById("hospital-section");
 const hospitalList = document.getElementById("hospital-list");
 
@@ -215,6 +226,8 @@ function resetJourneyState() {
   state.lifestyleShowAll = false;
   state.orderedTeas = [];
   state.teaExpanded = false;
+  state.orderedFoods = [];
+  state.foodExpanded = false;
   speakText.value = "";
   clearActiveRecordId();
 }
@@ -1098,8 +1111,9 @@ function shuffle(list) {
   return arr;
 }
 
-/** tags 일치 항목을 앞으로, tags 빈 항목은 맨 뒤로. 잘 모르겠어요면 정렬 없음. */
-function orderItemsByDetail(items, detail) {
+/** tags 일치 항목을 앞으로, tags 빈 항목은 맨 뒤로.
+ *  urine·sleep 은 정렬이 아니라 걸러낸다. 잘 모르겠어요면 전체. */
+function orderItemsByDetail(items, detail, group) {
   const list = items.slice();
   if (isDetailAny(detail)) {
     return { ordered: list, showAll: true };
@@ -1119,6 +1133,10 @@ function orderItemsByDetail(items, detail) {
       unmatched.push(item);
     }
   });
+
+  if (DETAIL_FILTER_GROUPS.has(group)) {
+    return { ordered: matched, showAll: false };
+  }
 
   return {
     ordered: matched.concat(unmatched, emptyTags),
@@ -1414,6 +1432,7 @@ function renderLifestyle(group, options = {}) {
   }
 
   if (resort || state.orderedLifestyle.length === 0) {
+    // 생활습관은 공통 안내가 많아 tags 로 걸러내지 않는다.
     const ordered = orderItemsByDetail(items, state.detail);
     state.orderedLifestyle = ordered.ordered;
     state.lifestyleShowAll = ordered.showAll;
@@ -1423,6 +1442,34 @@ function renderLifestyle(group, options = {}) {
 
   lifestyleSection.hidden = false;
   return true;
+}
+
+function appendHowToggle(card, howText) {
+  if (!howText) return;
+
+  const howBlock = document.createElement("div");
+  howBlock.className = "tea-how";
+
+  const howBody = document.createElement("p");
+  howBody.className = "tea-how-body";
+  howBody.textContent = howText;
+  howBody.hidden = true;
+
+  const howBtn = document.createElement("button");
+  howBtn.type = "button";
+  howBtn.className = "tea-how-btn";
+  howBtn.textContent = "만드는 법 보기";
+  howBtn.setAttribute("aria-expanded", "false");
+  howBtn.addEventListener("click", () => {
+    const open = howBody.hidden;
+    howBody.hidden = !open;
+    howBtn.textContent = open ? "접기" : "만드는 법 보기";
+    howBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+
+  howBlock.appendChild(howBtn);
+  howBlock.appendChild(howBody);
+  card.appendChild(howBlock);
 }
 
 function renderTeaCards() {
@@ -1444,31 +1491,7 @@ function renderTeaCards() {
     note.textContent = tea.note;
     card.appendChild(note);
 
-    if (tea.how) {
-      const howBlock = document.createElement("div");
-      howBlock.className = "tea-how";
-
-      const howBody = document.createElement("p");
-      howBody.className = "tea-how-body";
-      howBody.textContent = tea.how;
-      howBody.hidden = true;
-
-      const howBtn = document.createElement("button");
-      howBtn.type = "button";
-      howBtn.className = "tea-how-btn";
-      howBtn.textContent = "만드는 법 보기";
-      howBtn.setAttribute("aria-expanded", "false");
-      howBtn.addEventListener("click", () => {
-        const open = howBody.hidden;
-        howBody.hidden = !open;
-        howBtn.textContent = open ? "접기" : "만드는 법 보기";
-        howBtn.setAttribute("aria-expanded", open ? "true" : "false");
-      });
-
-      howBlock.appendChild(howBtn);
-      howBlock.appendChild(howBody);
-      card.appendChild(howBlock);
-    }
+    appendHowToggle(card, tea.how);
 
     if (tea.caution) {
       const caution = document.createElement("p");
@@ -1495,11 +1518,17 @@ function renderTea(group, options = {}) {
   }
 
   if (reshuffle || state.orderedTeas.length === 0) {
-    // 앞쪽(익숙한 차)을 우선 보여 준다. 임의 섞지 않는다.
-    const ordered = orderItemsByDetail(teas, state.detail);
+    // 앞쪽(익숙한 차)을 우선. urine·sleep 은 tags 로 걸러낸다.
+    const ordered = orderItemsByDetail(teas, state.detail, group);
     state.orderedTeas = ordered.ordered;
     state.teaExpanded = false;
   }
+
+  if (state.orderedTeas.length === 0) {
+    teaSection.hidden = true;
+    return false;
+  }
+
   renderTeaCards();
 
   teaDisclaimer.textContent = TEA_DISCLAIMER;
@@ -1512,6 +1541,71 @@ function renderTea(group, options = {}) {
   }
 
   teaSection.hidden = false;
+  return true;
+}
+
+function renderFoodCards() {
+  foodList.innerHTML = "";
+  const foods = state.orderedFoods;
+  const visible = state.foodExpanded ? foods : foods.slice(0, 3);
+
+  visible.forEach((food) => {
+    const card = document.createElement("article");
+    card.className = "food-card";
+
+    const title = document.createElement("h3");
+    title.className = "card-title";
+    title.textContent = food.name;
+    card.appendChild(title);
+
+    const note = document.createElement("p");
+    note.className = "card-body";
+    note.textContent = food.note;
+    card.appendChild(note);
+
+    appendHowToggle(card, food.how);
+
+    if (food.caution) {
+      const caution = document.createElement("p");
+      caution.className = "tea-caution";
+      caution.textContent = food.caution;
+      card.appendChild(caution);
+    }
+
+    foodList.appendChild(card);
+  });
+
+  btnMoreFood.hidden = state.foodExpanded || foods.length <= 3;
+}
+
+function renderFood(group, options = {}) {
+  const reshuffle = options.reshuffle !== false;
+  const foods = FOOD_DATA[group] || [];
+  foodList.innerHTML = "";
+
+  if (foods.length === 0) {
+    foodSection.hidden = true;
+    state.orderedFoods = [];
+    return false;
+  }
+
+  if (reshuffle || state.orderedFoods.length === 0) {
+    const ordered = orderItemsByDetail(foods, state.detail, group);
+    state.orderedFoods = ordered.ordered;
+    state.foodExpanded = false;
+  }
+
+  if (state.orderedFoods.length === 0) {
+    foodSection.hidden = true;
+    return false;
+  }
+
+  renderFoodCards();
+
+  foodDisclaimer.textContent = FOOD_DISCLAIMER;
+  foodIllnessNote.textContent = FOOD_ILLNESS_NOTE;
+
+  foodSection.hidden = false;
   return true;
 }
 
@@ -1564,10 +1658,14 @@ function renderResultFromState(options = {}) {
     lifestyleSection.hidden = true;
     guideDivider.hidden = true;
     teaSection.hidden = true;
+    foodDivider.hidden = true;
+    foodSection.hidden = true;
   } else {
     const hasLife = renderLifestyle(state.group, { resort: !preserveOrder });
     const hasTea = renderTea(state.group, { reshuffle: !preserveOrder });
-    guideDivider.hidden = !(hasLife && hasTea);
+    const hasFood = renderFood(state.group, { reshuffle: !preserveOrder });
+    guideDivider.hidden = !(hasLife && (hasTea || hasFood));
+    foodDivider.hidden = !(hasTea && hasFood);
   }
 
   updateMoodExtra();
@@ -1653,6 +1751,11 @@ btnMoreLifestyle.addEventListener("click", () => {
 btnMoreTea.addEventListener("click", () => {
   state.teaExpanded = true;
   renderTeaCards();
+});
+
+btnMoreFood.addEventListener("click", () => {
+  state.foodExpanded = true;
+  renderFoodCards();
 });
 
 document.getElementById("btn-records").addEventListener("click", openRecords);
